@@ -52,7 +52,29 @@ const db = {
   settlements: [],
   monthly_incomes: [],
   periods: [],
+  recurring_templates: [
+    {
+      id: 't-elec', household_id: H, kind: 'expense', amount_cents: 8000, payer_id: HER, category_id: 'c2', note: 'Electricity',
+      split_type: 'shared', payer_share_cents: null, frequency: 'monthly', every: 1, mode: 'reminder',
+      start_date: `${CUR}-05`, end_date: null, occurrences: 1, paused: false, created_by: HER, created_at: '', updated_at: '',
+    },
+  ],
+  pending_recurring: [
+    { id: 'p1', household_id: H, template_id: 't-elec', due_date: `${CUR}-05`, suggested_amount_cents: 8000, status: 'pending', entry_id: null, created_at: '' },
+  ],
 }
+
+// Mimics the recurring_templates next_due trigger (monthly schedules only in this scenario).
+function onWrite(table, row) {
+  if (table !== 'recurring_templates') return
+  const [y, m, d] = row.start_date.split('-').map(Number)
+  const total = y * 12 + (m - 1) + row.occurrences * row.every
+  const ty = Math.floor(total / 12), tm = total % 12
+  const day = Math.min(d, new Date(ty, tm + 1, 0).getDate())
+  row.next_due = `${ty}-${pad(tm + 1)}-${pad(day)}`
+}
+db.recurring_templates.forEach((t) => onWrite('recurring_templates', t))
+let processCalls = 0
 
 // ─── helpers ────────────────────────────────────────────────
 let failures = 0
@@ -73,7 +95,12 @@ await new Promise((r) => setTimeout(r, 1500))
 
 const browser = await chromium.launch()
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })
-await installMockBackend(context, db, { userId: ME, email: 'jero@example.com' })
+await installMockBackend(context, db, {
+  userId: ME,
+  email: 'jero@example.com',
+  onWrite,
+  rpc: { process_recurring: () => (processCalls++, 0) },
+})
 const page = await context.newPage()
 const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
@@ -158,6 +185,50 @@ try {
   await waitForText(page, /All square/)
   check('settlement stored', JSON.stringify(db.settlements.map((s) => [s.from_id === ME, s.amount_cents])), JSON.stringify([[true, 3225]]))
 
+  // Recurring: confirm the electricity reminder with the real amount
+  await page.goto(BASE + '/')
+  await waitForText(page, /To confirm/)
+  check('generator called on start', processCalls > 0, true)
+  await page.screenshot({ path: SHOTS + '09-pending.png', fullPage: true })
+  await page.getByRole('link', { name: 'Add', exact: true }).click()
+  await waitForText(page, /Check the amount/)
+  check('reminder prefilled', await page.getByLabel('Amount').inputValue(), '80.00')
+  await page.getByLabel('Amount').fill('95')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.waitForURL(BASE + '/')
+  await page.waitForTimeout(300)
+  const confirmed = db.entries.find((e) => e.recurring_template_id === 't-elec')
+  check('reminder entry', JSON.stringify(confirmed && [confirmed.amount_cents, confirmed.payer_id === HER, confirmed.date]), JSON.stringify([9500, true, `${CUR}-05`]))
+  check('reminder done', JSON.stringify([db.pending_recurring[0].status, db.pending_recurring[0].entry_id === confirmed?.id]), JSON.stringify(['done', true]))
+  check('template learns last amount', db.recurring_templates[0].amount_cents, 9500)
+
+  // Add rent with "Repeat monthly"
+  await page.getByLabel('Add expense').click()
+  await page.getByLabel('Amount').fill('900')
+  await page.getByRole('button', { name: /Rent/ }).click()
+  await page.getByLabel('Repeat').check()
+  await waitForText(page, /Monthly on the/)
+  await page.screenshot({ path: SHOTS + '10-repeat.png', fullPage: true })
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.waitForURL(BASE + '/')
+  await page.waitForTimeout(300)
+  const rent = db.recurring_templates.find((t) => t.id !== 't-elec')
+  const rentEntry = db.entries.find((e) => rent && e.recurring_template_id === rent.id)
+  check('rent template', JSON.stringify(rent && [rent.amount_cents, rent.frequency, rent.mode, rent.occurrences, rent.category_id]), JSON.stringify([90000, 'monthly', 'auto', 1, 'c1']))
+  check('rent first entry linked', rentEntry?.amount_cents, 90000)
+
+  // Recurring list + edit without rescheduling
+  await page.goto(BASE + '/recurring')
+  await waitForText(page, /Committed per month/)
+  await page.screenshot({ path: SHOTS + '11-recurring.png', fullPage: true })
+  await page.getByRole('link', { name: /Rent/ }).click()
+  await waitForText(page, /Edit recurring/)
+  await page.getByLabel('Amount').fill('950')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.waitForURL(BASE + '/recurring')
+  const rentAfter = db.recurring_templates.find((t) => t.id === rent.id)
+  check('edit keeps schedule anchor', JSON.stringify([rentAfter.amount_cents, rentAfter.occurrences, rentAfter.start_date === rentEntry.date]), JSON.stringify([95000, 1, true]))
+
   // Ledger
   await page.goto(`${BASE}/ledger?month=${CUR}`)
   await waitForText(page, /Cost for you/)
@@ -166,7 +237,7 @@ try {
   // Dark mode home
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto(BASE + '/')
-  await waitForText(page, /All square/)
+  await waitForText(page, /Ana owes you/)
   await page.screenshot({ path: SHOTS + '08-home-dark.png', fullPage: true })
 } catch (e) {
   failures++

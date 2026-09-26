@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import type { EntryKind, SplitType } from '../domain/balance'
+import { todayISO } from '../domain/dates'
+import type { Frequency } from '../domain/recurrence'
 import type { Insert, Row, Update } from './database.types'
 import { useUserId } from './session'
 import { supabase } from './supabase'
@@ -11,6 +13,13 @@ export type Category = Row<'categories'>
 export type Settlement = Row<'settlements'>
 export type Period = Row<'periods'>
 export type MonthlyIncome = Row<'monthly_incomes'>
+export type Template = Omit<Row<'recurring_templates'>, 'kind' | 'split_type' | 'frequency' | 'mode'> & {
+  kind: EntryKind
+  split_type: SplitType
+  frequency: Frequency
+  mode: 'auto' | 'reminder'
+}
+export type PendingRecurring = Row<'pending_recurring'>
 export type Entry = Omit<Row<'entries'>, 'kind' | 'split_type'> & { kind: EntryKind; split_type: SplitType }
 
 // PostgREST caps responses at 1000 rows: page through everything.
@@ -144,6 +153,51 @@ export function useIncomes() {
   })
 }
 
+export function useTemplates() {
+  return useQuery({
+    queryKey: ['templates'],
+    queryFn: async () =>
+      (check(await supabase.from('recurring_templates').select('*').order('next_due'))) as Template[],
+  })
+}
+
+export function usePendingRecurring() {
+  return useQuery({
+    queryKey: ['pending'],
+    queryFn: async () =>
+      check(await supabase.from('pending_recurring').select('*').eq('status', 'pending').order('due_date')),
+  })
+}
+
+/**
+ * Generate due recurring entries/reminders (the database also does it daily).
+ * Runs on start and whenever the app comes back to the foreground on a new day.
+ */
+export function useProcessRecurring() {
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    let lastRun = ''
+    async function run() {
+      const today = todayISO()
+      if (lastRun === today || document.visibilityState !== 'visible') return
+      lastRun = today
+      const { data, error } = await supabase.rpc('process_recurring', { p_today: today })
+      if (error) {
+        lastRun = ''
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      if (data && data > 0) {
+        queryClient.invalidateQueries({ queryKey: ['entries'] })
+        queryClient.invalidateQueries({ queryKey: ['pending'] })
+      }
+    }
+    run()
+    document.addEventListener('visibilitychange', run)
+    return () => document.removeEventListener('visibilitychange', run)
+  }, [queryClient])
+}
+
 /** Keep both phones in sync: refetch when the other person changes something. */
 export function useRealtimeSync() {
   const queryClient = useQueryClient()
@@ -168,6 +222,12 @@ export function useRealtimeSync() {
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'households' }, () =>
         queryClient.invalidateQueries({ queryKey: ['household'] }),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_templates' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['templates'] }),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pending_recurring' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['pending'] }),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         queryClient.invalidateQueries({ queryKey: ['members'] })
@@ -290,6 +350,35 @@ export function useReopenPeriod() {
       check(await supabase.from('periods').delete().eq('household_id', household_id).eq('month', month)),
     [['periods']],
   )
+}
+
+export function useSaveTemplate() {
+  return useInvalidating(
+    async (t: Insert<'recurring_templates'> & { id: string }) =>
+      check(await supabase.from('recurring_templates').upsert(t)),
+    [['templates']],
+  )
+}
+
+export function useDeleteTemplate() {
+  return useInvalidating(
+    async (id: string) => check(await supabase.from('recurring_templates').delete().eq('id', id)),
+    [['templates'], ['pending']],
+  )
+}
+
+export function useUpdatePending() {
+  return useInvalidating(
+    async ({ id, ...patch }: Update<'pending_recurring'> & { id: string }) =>
+      check(await supabase.from('pending_recurring').update(patch).eq('id', id)),
+    [['pending']],
+  )
+}
+
+/** Run the generator now (after creating or editing a template). */
+export async function processRecurringNow() {
+  const { error } = await supabase.rpc('process_recurring', { p_today: todayISO() })
+  if (error) throw error
 }
 
 export async function signOut() {

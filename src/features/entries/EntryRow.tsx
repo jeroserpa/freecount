@@ -34,6 +34,7 @@ export function EntryRow({
         <p className="truncate font-medium">{entry.note || category?.name || 'Expense'}</p>
         <p className="muted truncate text-xs">
           {payerName} {refund ? 'received' : 'paid'} · {splitLabel(entry, meId, partner)}
+          {entry.recurring_template_id && ' · 🔁'}
         </p>
       </div>
       <span className={`font-semibold tabular-nums ${refund ? 'text-brand-600' : ''}`}>

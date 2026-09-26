@@ -155,7 +155,13 @@ deterministically (to the payer), so both users always see identical numbers.
   - **Auto** — fixed amounts (rent, subscriptions): entry is created automatically on the due date.
   - **Reminder** — variable amounts (electricity, water): a "to confirm" item appears with the last
     amount prefilled; the user confirms the real amount.
-- Templates can be paused, edited (future occurrences only), or ended.
+- Templates can be paused, edited (future occurrences only), or ended (optional end date).
+- Create one from Settings → Recurring, or tick **Repeat** when adding an expense (that expense becomes the
+  first occurrence).
+- Confirming a reminder with a different amount makes it the suggestion for the next one. Reminders can be skipped.
+- An *auto* occurrence falling in a closed month becomes a reminder instead (closed months are locked).
+- Personal templates are private, like personal entries.
+- Monthly schedules on the 29th–31st fall on the last day of shorter months, without drifting.
 - Used by analytics for **fixed vs variable** spend and a next-month **forecast**.
 
 ---

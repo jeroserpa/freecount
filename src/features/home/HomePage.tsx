@@ -8,6 +8,7 @@ import { currentMonth, formatMonth, monthRange } from '../../domain/dates'
 import { formatCents } from '../../domain/money'
 import { BalanceCard } from '../balance/BalanceCard'
 import { EntryRow } from '../entries/EntryRow'
+import { PendingCard } from '../recurring/PendingCard'
 import { InviteCard } from '../settings/InviteCard'
 
 export function HomePage() {
@@ -45,6 +46,8 @@ export function HomePage() {
           partnerName={partner.display_name}
         />
       )}
+
+      <PendingCard />
 
       <section className="card mt-4">
         <div className="mb-3 flex items-baseline justify-between">

@@ -44,6 +44,7 @@ export type Database = {
           note: string
           payer_id: string
           payer_share_cents: number | null
+          recurring_template_id: string | null
           split_type: string
           updated_at: string
         }
@@ -59,6 +60,7 @@ export type Database = {
           note?: string
           payer_id: string
           payer_share_cents?: number | null
+          recurring_template_id?: string | null
           split_type?: string
           updated_at?: string
         }
@@ -135,6 +137,30 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['periods']['Insert']>
         Relationships: []
       }
+      pending_recurring: {
+        Row: {
+          created_at: string
+          due_date: string
+          entry_id: string | null
+          household_id: string
+          id: string
+          status: string
+          suggested_amount_cents: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          entry_id?: string | null
+          household_id: string
+          id?: string
+          status?: string
+          suggested_amount_cents: number
+          template_id: string
+        }
+        Update: Partial<Database['public']['Tables']['pending_recurring']['Insert']>
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -153,6 +179,54 @@ export type Database = {
           reference_monthly_income_cents?: number
         }
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+        Relationships: []
+      }
+      recurring_templates: {
+        Row: {
+          amount_cents: number
+          category_id: string | null
+          created_at: string
+          created_by: string
+          end_date: string | null
+          every: number
+          frequency: string
+          household_id: string
+          id: string
+          kind: string
+          mode: string
+          next_due: string
+          note: string
+          occurrences: number
+          paused: boolean
+          payer_id: string
+          payer_share_cents: number | null
+          split_type: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          end_date?: string | null
+          every?: number
+          frequency: string
+          household_id: string
+          id?: string
+          kind?: string
+          mode?: string
+          next_due?: string
+          note?: string
+          occurrences?: number
+          paused?: boolean
+          payer_id: string
+          payer_share_cents?: number | null
+          split_type?: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['recurring_templates']['Insert']>
         Relationships: []
       }
       settlements: {
@@ -186,6 +260,7 @@ export type Database = {
     Functions: {
       create_household: { Args: { p_name?: string }; Returns: string }
       join_household: { Args: { p_code: string }; Returns: string }
+      process_recurring: { Args: { p_today?: string }; Returns: number }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
