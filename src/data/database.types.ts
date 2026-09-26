@@ -289,6 +289,12 @@ export type Database = {
       create_household: { Args: { p_name?: string }; Returns: string }
       join_household: { Args: { p_code: string }; Returns: string }
       process_recurring: { Args: { p_today?: string }; Returns: number }
+      register_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string }
+        Returns: undefined
+      }
+      unregister_push_subscription: { Args: { p_endpoint: string }; Returns: undefined }
+      send_test_push: { Args: Record<string, never>; Returns: undefined }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

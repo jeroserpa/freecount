@@ -22,4 +22,5 @@ through the Supabase MCP instead. Extend the smoke scenario when adding user-fac
 - `src/data/` Supabase client, generated types, TanStack Query hooks (`queries.ts`), session,
   `ratios.ts` (ratio for any month), `balance.ts` (total balance hook)
 - `src/features/<area>/` screens
+- `supabase/functions/push/` Edge Function (deploy with the Supabase MCP, `verify_jwt: false`)
 - `src/components/ui.tsx` shared UI bits
