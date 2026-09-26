@@ -214,7 +214,12 @@ One filter row scopes the whole page: **scope** (*My costs* = my share of shared
 
 ---
 
-## 10. Open / later
-- Push notifications (e.g. "she added €40 🛒", "electricity to confirm").
+## 10. Notifications
+
+Opt-in per device (Settings → Notifications). A device is notified when the partner adds a shared expense,
+refund or transfer, when a month is closed, when a recurring bill needs confirming, and when a recurring expense
+is added automatically. Personal entries never notify anyone. Tapping a notification opens the related screen.
+
+## 11. Open / later
 - Attach receipt photo to an entry.
 - Configurable period length (other than calendar month).

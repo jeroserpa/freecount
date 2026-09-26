@@ -17,6 +17,7 @@ import { useSession } from '../../data/session'
 import { CategoryEditor } from './CategoryEditor'
 import { ExportCard } from './ExportCard'
 import { InviteCard } from './InviteCard'
+import { NotificationsCard } from './NotificationsCard'
 import { SplitCard } from './SplitCard'
 
 export function SettingsPage() {
@@ -41,6 +42,7 @@ export function SettingsPage() {
           <span className="muted">›</span>
         </Link>
         <CategoriesCard householdId={household.id} />
+        <NotificationsCard />
         <ExportCard />
         <button className="btn-secondary w-full" onClick={signOut}>Sign out</button>
       </div>

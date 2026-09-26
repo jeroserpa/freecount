@@ -114,6 +114,7 @@ try {
   await waitForText(page, /You owe Ana/)
   check('home balance (estimate, 60/40 from reference incomes)', await balanceText(page), /Balance · estimate You owe Ana €89\.80/)
   await page.screenshot({ path: SHOTS + '01-home.png', fullPage: true })
+  check('income reminder on home', await page.getByText(/Enter your income for/).count(), 1)
 
   // Quick add a shared expense: +€20 paid by me, Ana bears 40% = €8
   await page.getByLabel('Add expense').click()
@@ -175,6 +176,9 @@ try {
   await page.waitForTimeout(300)
   check('fixed ratio stored', JSON.stringify([db.households[0].ratio_mode, db.households[0].fixed_ratio, db.households[0].fixed_ratio_profile_id]), JSON.stringify(['fixed', 0.7, ME]))
   await page.screenshot({ path: SHOTS + '06-settings.png', fullPage: true })
+  // Headless Chromium always reports Notification.permission = 'denied', so the card shows its "blocked" guidance.
+  const notif = await page.getByText(/Notifications are blocked|Turn on for this device/).first().waitFor({ timeout: 5000 }).then(() => true, () => false)
+  check('notifications card reflects the browser state', notif, true)
   await page.goto(BASE + '/')
   await waitForText(page, /€32\.25/)
   check('balance with fixed 70/30', await balanceText(page), /You owe Ana €32\.25/)
