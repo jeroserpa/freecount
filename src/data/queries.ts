@@ -21,6 +21,7 @@ export type Template = Omit<Row<'recurring_templates'>, 'kind' | 'split_type' | 
   mode: 'auto' | 'reminder'
 }
 export type PendingRecurring = Row<'pending_recurring'>
+export type YearlyAdjustment = Row<'yearly_adjustments'>
 export type Entry = Omit<Row<'entries'>, 'kind' | 'split_type'> & { kind: EntryKind; split_type: SplitType }
 
 // PostgREST caps responses at 1000 rows: page through everything.
@@ -199,6 +200,13 @@ export function useProcessRecurring() {
   }, [queryClient])
 }
 
+export function useYearlyAdjustments() {
+  return useQuery({
+    queryKey: ['adjustments'],
+    queryFn: async () => check(await supabase.from('yearly_adjustments').select('*').order('year')),
+  })
+}
+
 /** Keep both phones in sync: refetch when the other person changes something. */
 export function useRealtimeSync() {
   const queryClient = useQueryClient()
@@ -229,6 +237,9 @@ export function useRealtimeSync() {
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pending_recurring' }, () =>
         queryClient.invalidateQueries({ queryKey: ['pending'] }),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yearly_adjustments' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['adjustments'] }),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
         queryClient.invalidateQueries({ queryKey: ['members'] })
@@ -380,6 +391,21 @@ export async function fetchAllEntries(): Promise<Entry[]> {
 export async function processRecurringNow() {
   const { error } = await supabase.rpc('process_recurring', { p_today: todayISO() })
   if (error) throw error
+}
+
+export function useSaveAdjustment() {
+  return useInvalidating(
+    async (a: Insert<'yearly_adjustments'>) => check(await supabase.from('yearly_adjustments').upsert(a)),
+    [['adjustments']],
+  )
+}
+
+export function useDeleteAdjustment() {
+  return useInvalidating(
+    async ({ household_id, year }: { household_id: string; year: number }) =>
+      check(await supabase.from('yearly_adjustments').delete().eq('household_id', household_id).eq('year', year)),
+    [['adjustments']],
+  )
 }
 
 export async function signOut() {

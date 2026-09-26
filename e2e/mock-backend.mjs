@@ -6,6 +6,7 @@
 const KEYS = {
   monthly_incomes: ['profile_id', 'month'],
   periods: ['household_id', 'month'],
+  yearly_adjustments: ['household_id', 'year'],
 }
 const keyOf = (table, row) => (KEYS[table] ?? ['id']).map((k) => row[k]).join('|')
 

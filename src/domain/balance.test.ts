@@ -5,6 +5,7 @@ import {
   netBalance,
   otherShareCents,
   userShareCents,
+  yearlyAdjustment,
   type BalanceEntry,
   type DatedBalanceEntry,
 } from './balance'
@@ -156,5 +157,33 @@ describe('monthSummary', () => {
   it('uses the ratio for shared entries', () => {
     const s = monthSummary(A, B, [e({ payer_id: A, amount_cents: 10000 })], 0.6)
     expect(s).toMatchObject({ costA: 6000, costB: 4000, net: 4000 })
+  })
+})
+
+describe('yearlyAdjustment', () => {
+  const d = (date: string, partial: Partial<BalanceEntry>): DatedBalanceEntry => ({ ...e(partial), date })
+
+  it('re-splits shared entries with the yearly ratio', () => {
+    // A paid €1000 in Jan (A bore 50%) and €1000 in Jul (A bore 70%): B owed 500 + 300 = 800.
+    // With a yearly 60/40 ratio B owes 400 + 400 = 800 → no change.
+    const entries = [d('2026-01-10', { amount_cents: 100000 }), d('2026-07-10', { amount_cents: 100000 })]
+    const monthly = (m: string) => (m === '2026-01' ? 0.5 : 0.7)
+    expect(yearlyAdjustment(A, B, entries, monthly, 0.6)).toBe(0)
+    // Yearly 55/45: B owes 450 + 450 = 900 → B owes 100 more.
+    expect(yearlyAdjustment(A, B, entries, monthly, 0.55)).toBe(10000)
+  })
+
+  it('ignores custom and for-other entries', () => {
+    const entries = [
+      d('2026-03-01', { split_type: 'custom', payer_share_cents: 2000 }),
+      d('2026-03-02', { split_type: 'for_other', payer_id: B }),
+    ]
+    expect(yearlyAdjustment(A, B, entries, () => 0.5, 0.8)).toBe(0)
+  })
+
+  it('handles refunds and payments by B', () => {
+    const entries = [d('2026-05-01', { payer_id: B, amount_cents: 10000 }), d('2026-05-02', { kind: 'refund', payer_id: A, amount_cents: 2000 })]
+    // monthly 50/50: A owes 50 + 10 = −6000; yearly 40/60: A owes 40 + 12 (B’s 60% of the refund) = −5200 → +800
+    expect(yearlyAdjustment(A, B, entries, () => 0.5, 0.4)).toBe(800)
   })
 })

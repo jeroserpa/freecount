@@ -7,6 +7,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { BalancePage } from './features/balance/BalancePage'
 import { MonthPage } from './features/balance/MonthPage'
 import { SettlePage } from './features/balance/SettlePage'
+import { YearPage } from './features/balance/YearPage'
 import { EntryFormPage } from './features/entries/EntryFormPage'
 import { LedgerPage } from './features/entries/LedgerPage'
 import { HomePage } from './features/home/HomePage'
@@ -45,6 +46,7 @@ function SignedInApp() {
         <Route path="add" element={<EntryFormPage />} />
         <Route path="entry/:id" element={<EntryFormPage />} />
         <Route path="settle" element={<SettlePage />} />
+        <Route path="balance/year/:year" element={<YearPage />} />
         <Route path="balance/:month" element={<MonthPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="recurring" element={<RecurringPage />} />
