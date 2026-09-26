@@ -58,7 +58,7 @@ categories        id, household_id, name, emoji, color, sort_order, monthly_budg
                   archived (bool)
 
 entries           id, household_id, kind ('expense'|'refund'), amount_cents (>0),
-                  date, payer_id (→ profiles), category_id, note,
+                  date, payer_id (→ profiles; for a refund = who received the money), category_id, note,
                   split_type ('personal'|'shared'|'custom'|'for_other'),
                   custom_split_mode ('percent'|'amount', nullable),
                   custom_share_a (numeric/cents, nullable),   -- share of the household's user A
@@ -156,4 +156,4 @@ Settlements then move the net towards 0.
 3. **M3 – Recurring**: templates, auto + reminder modes, cron job.
 4. **M4 – Analytics**: charts, budgets, export CSV.
 5. **M5 – PWA polish**: offline queue, install prompts, realtime, performance.
-6. **M6 – Extras**: yearly adjustment, Tricount import, push notifications.
+6. **M6 – Extras**: yearly adjustment, push notifications.

@@ -66,8 +66,20 @@ income-based splitting possible, since incomes are only known at the end of the 
 
 A refund is money **received** (e.g. the electricity company pays back an overcharge).
 
-- It has the same split types as an expense, and is treated in the balance as a **negative expense**:
-  if I receive a €60 refund on a *shared* bill, I received money that is partly hers, so I owe her her share.
+- It records **who received the money** (same field as "paid by" on an expense) and has the same split types.
+- In the balance it is a **negative expense** for the receiver: whoever received it is holding money that is
+  partly the other's, so they owe the other person their share.
+- The refund is independent of the original expense: it does not matter who paid the original bill,
+  only who received the refund.
+
+Example (shared, 50/50 ratio):
+| Entry | Effect on balance |
+|---|---|
+| She pays electricity €200 | I owe her €100 |
+| Company refunds €60 **to me** | I owe her €30 more → I owe her €130 |
+| *(alternative)* Company refunds €60 **to her** | She owes me €30 → I owe her €70 |
+
+In every case the net shared electricity cost is €140, split €70 / €70.
 - Refunds are, by default, in a dedicated **"Refunds ↩️" category**, so they are easy to find.
   The user may instead pick the original category (e.g. "Utilities") to get *net* utility spend in analytics.
   Both work in the balance; only analytics differ.
@@ -185,7 +197,6 @@ All views filterable by date range; each user sees shared data + **their own** p
 ---
 
 ## 10. Open / later
-- Import of historical Tricount data (Tricount exports to CSV/Excel) — *nice to have*.
 - Push notifications (e.g. "she added €40 🛒", "electricity to confirm").
 - Attach receipt photo to an entry.
 - Configurable period length (other than calendar month).
