@@ -375,6 +375,11 @@ export function useUpdatePending() {
   )
 }
 
+/** Every entry visible to me (shared + my personal), for exports. */
+export async function fetchAllEntries(): Promise<Entry[]> {
+  return (await fetchAll((a, b) => supabase.from('entries').select('*').order('date').order('id').range(a, b))) as Entry[]
+}
+
 /** Run the generator now (after creating or editing a template). */
 export async function processRecurringNow() {
   const { error } = await supabase.rpc('process_recurring', { p_today: todayISO() })

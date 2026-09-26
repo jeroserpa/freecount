@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ErrorNote } from '../../components/ui'
 import { useDeleteCategory, useSaveCategory, type Category } from '../../data/queries'
+import { centsToInput, parseEuros } from '../../domain/money'
 
 const QUICK_EMOJIS = [
   '🛒', '🏠', '💡', '🍽️', '🚆', '🎉', '🏥', '🧴', '🎁', '✈️', '↩️', '📦',
@@ -25,6 +26,11 @@ export function CategoryEditor({
   const [name, setName] = useState(category?.name ?? '')
   const [emoji, setEmoji] = useState(category?.emoji ?? '📦')
   const [color, setColor] = useState(category?.color ?? COLORS[0])
+  const [budget, setBudget] = useState(
+    category?.monthly_budget_cents != null ? centsToInput(category.monthly_budget_cents) : '',
+  )
+  const budgetCents = budget.trim() === '' ? null : parseEuros(budget)
+  const budgetInvalid = budget.trim() !== '' && budgetCents == null
 
   function submit() {
     save.mutate(
@@ -33,6 +39,7 @@ export function CategoryEditor({
         name: name.trim(),
         emoji: emoji.trim() || '📦',
         color,
+        monthly_budget_cents: budgetCents,
       },
       { onSuccess: onDone },
     )
@@ -80,9 +87,21 @@ export function CategoryEditor({
           />
         ))}
       </div>
+      <div>
+        <label className="label" htmlFor="budget">Monthly budget for shared spending (optional)</label>
+        <input
+          id="budget"
+          className="input"
+          inputMode="decimal"
+          placeholder="e.g. 450"
+          value={budget}
+          onChange={(e) => setBudget(e.target.value)}
+        />
+        {budgetInvalid && <p className="mt-1 text-xs text-red-600">Enter an amount like 450 or 450.50</p>}
+      </div>
       <ErrorNote error={save.error ?? remove.error} />
       <div className="flex flex-wrap gap-2">
-        <button className="btn-primary flex-1" disabled={!name.trim() || save.isPending} onClick={submit}>
+        <button className="btn-primary flex-1" disabled={!name.trim() || budgetInvalid || save.isPending} onClick={submit}>
           Save
         </button>
         <button className="btn-secondary" onClick={onDone}>Cancel</button>

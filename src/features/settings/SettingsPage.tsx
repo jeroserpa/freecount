@@ -15,6 +15,7 @@ import {
 } from '../../data/queries'
 import { useSession } from '../../data/session'
 import { CategoryEditor } from './CategoryEditor'
+import { ExportCard } from './ExportCard'
 import { InviteCard } from './InviteCard'
 import { SplitCard } from './SplitCard'
 
@@ -26,7 +27,7 @@ export function SettingsPage() {
   if (!me || !household) return <Spinner />
   return (
     <>
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" back="/" />
       <div className="space-y-4">
         <ProfileCard key={me.id + me.display_name + me.emoji} me={me} email={session?.user.email} />
         <HouseholdCard key={household.id + household.name} household={household} partner={partner} />
@@ -40,6 +41,7 @@ export function SettingsPage() {
           <span className="muted">›</span>
         </Link>
         <CategoriesCard householdId={household.id} />
+        <ExportCard />
         <button className="btn-secondary w-full" onClick={signOut}>Sign out</button>
       </div>
     </>

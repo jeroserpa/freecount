@@ -1,7 +1,7 @@
 // Browser smoke test against the production build with a mocked backend.
 // Usage: npm run e2e   (builds, serves dist/ with `vite preview`, runs this script)
 import { spawn } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { chromium } from 'playwright'
 import { installMockBackend } from './mock-backend.mjs'
 
@@ -27,7 +27,8 @@ const categories = [
   ['Groceries', '🛒', '#16a34a'], ['Rent', '🏠', '#2563eb'], ['Utilities', '💡', '#eab308'],
   ['Restaurants', '🍽️', '#ea580c'], ['Refunds', '↩️', '#65a30d'], ['Other', '📦', '#64748b'],
 ].map(([name, emoji, color], i) => ({
-  id: `c${i}`, household_id: H, name, emoji, color, sort_order: i + 1, archived: false, monthly_budget_cents: null, created_at: '',
+  id: `c${i}`, household_id: H, name, emoji, color, sort_order: i + 1, archived: false,
+  monthly_budget_cents: name === 'Utilities' ? 15000 : null, created_at: '',
 }))
 
 const entry = (id, date, payer, amount, category, note, extra = {}) => ({
@@ -233,6 +234,35 @@ try {
   await page.goto(`${BASE}/ledger?month=${CUR}`)
   await waitForText(page, /Cost for you/)
   await page.screenshot({ path: SHOTS + '07-ledger.png', fullPage: true })
+
+  // Stats: previous month in "my costs" = electricity 100 + groceries 22.75 (50/50, closed)
+  const monthTitle = (m) => {
+    const [y, mo] = m.split('-').map(Number)
+    return new Date(y, mo - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+  }
+  await page.goto(BASE + '/stats')
+  await waitForText(page, /Spending per month/)
+  await page.screenshot({ path: SHOTS + '12-stats.png', fullPage: true })
+  await page.getByRole('button', { name: new RegExp(`^${monthTitle(PREV)}: `) }).first().click()
+  await waitForText(page, new RegExp(`Categories · ${monthTitle(PREV)}`))
+  check('stats month total (my costs)', await text(page.locator('.card').first()), /€122\.75/)
+  // Shared scope shows the utilities budget warning (€200 electricity vs €150 budget)
+  await page.goto(`${BASE}/stats?scope=shared&month=${PREV}`)
+  await waitForText(page, /over budget by €50\.00/)
+  check('budget warning shown', true, true)
+  await page.screenshot({ path: SHOTS + '13-stats-shared.png', fullPage: true })
+  // Category trend filter
+  await page.getByRole('button', { name: /Utilities/ }).first().click()
+  await waitForText(page, /Utilities per month/)
+  check('category filter', true, true)
+  // CSV export
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: /Export these/ }).click(),
+  ])
+  const csv = readFileSync(await download.path(), 'utf8').replace(/^\ufeff/, '').trim().split('\r\n')
+  check('csv header', csv[0], 'date,type,amount_eur,category,note,paid_or_received_by,split,payer_part_eur,cost_for_me_eur,recurring')
+  check('csv rows = visible entries', csv.length - 1, db.entries.length)
 
   // Dark mode home
   await page.emulateMedia({ colorScheme: 'dark' })

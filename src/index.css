@@ -11,6 +11,28 @@
 :root {
   color-scheme: light dark;
   -webkit-tap-highlight-color: transparent;
+
+  /* Chart tokens — validated (CVD, contrast) against the card surfaces with the dataviz validator. */
+  --chart-accent: #2a78d6; /* selected / primary series */
+  --chart-context: #86b6ef; /* other columns (same hue, lighter step, ≥2:1) */
+  --chart-second: #eb6834; /* second series */
+  --chart-grid: #e2e8f0;
+  --chart-baseline: #cbd5e1;
+  --chart-ink-muted: #64748b;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chart-accent: #3987e5;
+    --chart-context: #1c5cab;
+    --chart-second: #d95926;
+    --chart-grid: #1e293b;
+    --chart-baseline: #334155;
+    --chart-ink-muted: #94a3b8;
+  }
 }
 
 body {

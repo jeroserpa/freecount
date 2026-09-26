@@ -24,6 +24,7 @@ export function LedgerPage() {
   const month = isValidMonth(monthParam) ? monthParam : currentMonth()
   const scope = (params.get('scope') as Scope | null) ?? 'all'
   const categoryFilter = params.get('category')
+  const query = params.get('q') ?? ''
 
   const [from, to] = monthRange(month)
   const entries = useEntries(from, to)
@@ -48,7 +49,8 @@ export function LedgerPage() {
   const filtered = (entries.data ?? []).filter(
     (e) =>
       (scope === 'all' || (scope === 'personal' ? e.split_type === 'personal' : e.split_type !== 'personal')) &&
-      (!categoryFilter || e.category_id === categoryFilter),
+      (!categoryFilter || e.category_id === categoryFilter) &&
+      matchesQuery(e, query, catById.get(e.category_id ?? '')?.name),
   )
   const total = filtered.reduce((s, e) => s + signedAmount(e), 0)
   const ratio = ratios.ratioFor(month)
@@ -57,7 +59,7 @@ export function LedgerPage() {
   // Group entries (and settlements, when unfiltered) by day, newest first.
   type Item = { type: 'entry'; entry: Entry } | { type: 'settlement'; settlement: Settlement }
   const items: Item[] = filtered.map((entry) => ({ type: 'entry', entry }))
-  if (scope !== 'personal' && !categoryFilter) {
+  if (scope !== 'personal' && !categoryFilter && !query) {
     for (const settlement of settlements.data ?? []) items.push({ type: 'settlement', settlement })
   }
   const days = new Map<string, Item[]>()
@@ -94,6 +96,15 @@ export function LedgerPage() {
           { value: 'shared', label: 'Shared' },
           { value: 'personal', label: '🔒 Personal' },
         ]}
+      />
+
+      <input
+        type="search"
+        className="input mt-3 py-2"
+        placeholder="🔍 Search notes and categories"
+        value={query}
+        onChange={(e) => update({ q: e.target.value || null })}
+        aria-label="Search"
       />
 
       <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -173,5 +184,16 @@ export function LedgerPage() {
         ))
       )}
     </>
+  )
+}
+
+function matchesQuery(e: Entry, query: string, categoryName: string | undefined): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const amount = (e.amount_cents / 100).toFixed(2)
+  return (
+    e.note.toLowerCase().includes(q) ||
+    (categoryName ?? '').toLowerCase().includes(q) ||
+    amount.startsWith(q.replace(',', '.'))
   )
 }
