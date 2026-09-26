@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseEuros } from './money'
+import { formatCompactCents, parseEuros } from './money'
 
 describe('parseEuros', () => {
   it.each([
@@ -16,5 +16,14 @@ describe('parseEuros', () => {
 
   it.each(['', 'abc', '1.234', '-5', '1,2,3'])('rejects %s', (input) => {
     expect(parseEuros(input)).toBeNull()
+  })
+})
+
+describe('formatCompactCents', () => {
+  it('compacts', () => {
+    expect(formatCompactCents(95000)).toBe('€950')
+    expect(formatCompactCents(120000)).toBe('€1.2k')
+    expect(formatCompactCents(200000)).toBe('€2k')
+    expect(formatCompactCents(1500000)).toBe('€15k')
   })
 })

@@ -13,6 +13,7 @@ import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { RecurringPage } from './features/recurring/RecurringPage'
 import { TemplateFormPage } from './features/recurring/TemplateFormPage'
 import { SettingsPage } from './features/settings/SettingsPage'
+import { StatsPage } from './features/stats/StatsPage'
 
 export function App() {
   const session = useSession()
@@ -37,13 +38,14 @@ function SignedInApp() {
         <Route index element={<HomePage />} />
         <Route path="ledger" element={<LedgerPage />} />
         <Route path="balance" element={<BalancePage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route path="stats" element={<StatsPage />} />
       </Route>
       <Route element={<PlainLayout />}>
         <Route path="add" element={<EntryFormPage />} />
         <Route path="entry/:id" element={<EntryFormPage />} />
         <Route path="settle" element={<SettlePage />} />
         <Route path="balance/:month" element={<MonthPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="recurring" element={<RecurringPage />} />
         <Route path="recurring/:id" element={<TemplateFormPage />} />
       </Route>
@@ -88,8 +90,8 @@ function TabLayout() {
           <NavLink to="/balance" className={tab}>
             <span className="text-xl">⚖️</span>Balance
           </NavLink>
-          <NavLink to="/settings" className={tab}>
-            <span className="text-xl">⚙️</span>Settings
+          <NavLink to="/stats" className={tab}>
+            <span className="text-xl">📊</span>Stats
           </NavLink>
         </div>
       </nav>

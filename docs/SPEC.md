@@ -168,17 +168,21 @@ deterministically (to the payer), so both users always see identical numbers.
 
 ## 7. Analytics
 
-All views filterable by date range; each user sees shared data + **their own** personal data only.
+One filter row scopes the whole page: **scope** (*My costs* = my share of shared entries + my personal ones;
+*Shared* = household shared spending, full amounts) and **range** (3 / 6 / 12 months). Each user sees shared data
++ **their own** personal data only (RLS).
 
-- **Monthly overview**: total spend per month, stacked by category.
-- **Category breakdown** for a period (donut/bar), with comparison to the user's average.
-- **Trends**: one category over time.
-- **Shared vs personal** (per user, own data only).
-- **Who paid what**: share of shared spend paid by each user over time.
-- **Fixed (recurring) vs variable** spend; forecast of next month's committed costs.
-- **Budgets**: progress per category vs monthly budget.
-- **Income ratio history** over time.
-- **Export**: CSV of all visible entries.
+- **KPI tiles** for the selected month: total vs the average of the earlier months in range, fixed (recurring)
+  share, personal total (My costs) or who paid (Shared), and my ratio for the month.
+- **Forecast**: next month's spending already committed by recurring expenses.
+- **Spending per month**: column chart (tap a month to select it), with a table view.
+- **Categories** of the selected month: bars with the comparison to the earlier-months average; tapping a
+  category filters the whole page to it (its trend over time).
+- **Budgets**: optional monthly budget per category for *shared* spending; shown with % used and an
+  "over budget" warning in the Shared scope.
+- **Who paid** the shared spending of the month.
+- **My share** of shared expenses per month (ratio history).
+- **Export**: CSV of the range from Stats, or of everything from Settings (UTF-8 with BOM, spreadsheet-safe).
 
 ---
 
@@ -187,10 +191,13 @@ All views filterable by date range; each user sees shared data + **their own** p
 1. **Home** — live balance ("You owe her €42 · estimate"), this month's shared total, pending recurring reminders, last entries.
 2. **Quick add** (big "+" button, always reachable) — amount keypad → category grid (emojis) → save.
    Defaults: paid by me, today, *Shared*. Split, date, note, refund toggle one tap away.
-3. **Ledger** — list grouped by day, filter by month / range / category / split type / person, search on note. Tap to edit.
-4. **Balance & periods** — open period, close-month flow, settlements, history of past periods, yearly adjustment.
-5. **Analytics** — see §7.
-6. **Settings** — categories, recurring templates, ratio mode, reference incomes, profile, export.
+3. **Ledger** — list grouped by day, by month, filter by shared/personal and category, search on note, category
+   or amount. Tap to edit.
+4. **Balance** — total balance, months (open/closed, month page with incomes and close/reopen), transfers,
+   yearly adjustment.
+5. **Stats** — see §7.
+6. **Settings** (⚙️ on Home) — profile, household, split mode & reference income, categories (with budgets),
+   recurring expenses, export.
 
 ---
 

@@ -21,3 +21,11 @@ export function parseEuros(input: string): number | null {
 export function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2)
 }
+
+/** Compact euros for chart axes: €950, €1.2k, €12k. */
+export function formatCompactCents(cents: number): string {
+  const eur = cents / 100
+  if (Math.abs(eur) >= 10000) return `€${Math.round(eur / 1000)}k`
+  if (Math.abs(eur) >= 1000) return `€${(eur / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return `€${Math.round(eur)}`
+}

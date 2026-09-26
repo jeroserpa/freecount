@@ -35,7 +35,7 @@ Static hosting of the PWA: Vercel (free tier), deployed from GitHub.
 | Routing | TanStack Router (or React Router) | Simple SPA routing |
 | Server state / offline | TanStack Query + IndexedDB persister | Caching, offline reads, retrying mutations |
 | PWA | vite-plugin-pwa (Workbox) | Manifest + service worker, installable |
-| Charts | ECharts (via echarts-for-react) | Rich chart types, good on mobile |
+| Charts | Small hand-written SVG/HTML components (`src/features/stats`) | No heavy chart dependency; colours validated for colour-blind safety and contrast (tokens in `index.css`) |
 | Backend | Supabase (Postgres, Auth, Realtime, pg_cron) | Real SQL for analytics, auth + RLS built in, free tier |
 | Hosting | Vercel | Free, automatic deploys & previews from GitHub |
 | Tests | Vitest (domain logic), Playwright (key flows) | Money logic must be tested |

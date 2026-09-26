@@ -34,7 +34,14 @@ export function HomePage() {
 
   return (
     <>
-      <PageHeader title={household?.name ?? 'Freecount'} />
+      <PageHeader
+        title={household?.name ?? 'Freecount'}
+        action={
+          <Link to="/settings" className="rounded-full p-2 text-xl" aria-label="Settings">
+            ⚙️
+          </Link>
+        }
+      />
 
       {!partner && household && <InviteCard code={household.invite_code} />}
 
