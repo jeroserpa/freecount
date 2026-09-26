@@ -1,27 +1,26 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { ErrorNote, PageHeader, Segmented, Spinner } from '../../components/ui'
-import { useAddSettlement, useBalanceEntries, useMembers, useSettlements, type Profile } from '../../data/queries'
-import { netBalance } from '../../domain/balance'
+import { useHouseholdBalance } from '../../data/balance'
+import { useAddSettlement, useMembers, type Profile } from '../../data/queries'
 import { todayISO } from '../../domain/dates'
 import { centsToInput, formatCents, parseEuros } from '../../domain/money'
 
 export function SettlePage() {
   const { me, partner } = useMembers()
-  const entries = useBalanceEntries()
-  const settlements = useSettlements()
+  const balance = useHouseholdBalance()
 
-  if (!me || entries.isLoading || settlements.isLoading) return <Spinner />
+  if (!me) return <Spinner />
   if (!partner) {
     return (
       <>
-        <PageHeader title="Settle up" />
+        <PageHeader title="Settle up" back="/balance" />
         <p className="muted">Your partner hasn’t joined yet.</p>
       </>
     )
   }
-  const net = netBalance(me.id, partner.id, entries.data ?? [], settlements.data ?? [])
-  return <SettleForm key={net} me={me} partner={partner} net={net} />
+  if (balance.loading) return <Spinner />
+  return <SettleForm key={balance.net} me={me} partner={partner} net={balance.net} />
 }
 
 function SettleForm({ me, partner, net }: { me: Profile; partner: Profile; net: number }) {
@@ -43,13 +42,13 @@ function SettleForm({ me, partner, net }: { me: Profile; partner: Profile; net: 
     const [from_id, to_id] = direction === 'me_to_partner' ? [me.id, partner.id] : [partner.id, me.id]
     add.mutate(
       { household_id: me.household_id!, from_id, to_id, amount_cents: cents, date, note: note.trim() },
-      { onSuccess: () => navigate('/') },
+      { onSuccess: () => navigate('/balance') },
     )
   }
 
   return (
     <form onSubmit={submit}>
-      <PageHeader title="Settle up" />
+      <PageHeader title="Settle up" back="/balance" />
 
       <div className="card mb-5 text-center">
         <p className="muted text-sm">Current balance</p>

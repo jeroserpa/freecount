@@ -15,6 +15,7 @@ import {
 import { useSession } from '../../data/session'
 import { CategoryEditor } from './CategoryEditor'
 import { InviteCard } from './InviteCard'
+import { SplitCard } from './SplitCard'
 
 export function SettingsPage() {
   const { me, partner } = useMembers()
@@ -28,6 +29,7 @@ export function SettingsPage() {
       <div className="space-y-4">
         <ProfileCard key={me.id + me.display_name + me.emoji} me={me} email={session?.user.email} />
         <HouseholdCard key={household.id + household.name} household={household} partner={partner} />
+        <SplitCard household={household} me={me} partner={partner} />
         <CategoriesCard householdId={household.id} />
         <button className="btn-secondary w-full" onClick={signOut}>Sign out</button>
       </div>

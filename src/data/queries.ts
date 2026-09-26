@@ -9,6 +9,8 @@ export type Profile = Row<'profiles'>
 export type Household = Row<'households'>
 export type Category = Row<'categories'>
 export type Settlement = Row<'settlements'>
+export type Period = Row<'periods'>
+export type MonthlyIncome = Row<'monthly_incomes'>
 export type Entry = Omit<Row<'entries'>, 'kind' | 'split_type'> & { kind: EntryKind; split_type: SplitType }
 
 // PostgREST caps responses at 1000 rows: page through everything.
@@ -120,11 +122,25 @@ export function useBalanceEntries() {
       (await fetchAll((a, b) =>
         supabase
           .from('entries')
-          .select('kind, amount_cents, payer_id, split_type, payer_share_cents')
+          .select('kind, amount_cents, payer_id, split_type, payer_share_cents, date')
           .neq('split_type', 'personal')
           .order('id')
           .range(a, b),
-      )) as Pick<Entry, 'kind' | 'amount_cents' | 'payer_id' | 'split_type' | 'payer_share_cents'>[],
+      )) as Pick<Entry, 'kind' | 'amount_cents' | 'payer_id' | 'split_type' | 'payer_share_cents' | 'date'>[],
+  })
+}
+
+export function usePeriods() {
+  return useQuery({
+    queryKey: ['periods'],
+    queryFn: async () => check(await supabase.from('periods').select('*').order('month')),
+  })
+}
+
+export function useIncomes() {
+  return useQuery({
+    queryKey: ['incomes'],
+    queryFn: async () => fetchAll((a, b) => supabase.from('monthly_incomes').select('*').order('month').range(a, b)),
   })
 }
 
@@ -144,6 +160,19 @@ export function useRealtimeSync() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () =>
         queryClient.invalidateQueries({ queryKey: ['categories'] }),
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'periods' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['periods'] }),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'monthly_incomes' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['incomes'] }),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'households' }, () =>
+        queryClient.invalidateQueries({ queryKey: ['household'] }),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['members'] })
+        queryClient.invalidateQueries({ queryKey: ['me'] })
+      })
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -230,6 +259,36 @@ export function useDeleteSettlement() {
   return useInvalidating(
     async (id: string) => check(await supabase.from('settlements').delete().eq('id', id)),
     [['settlements']],
+  )
+}
+
+export function useSaveIncome() {
+  return useInvalidating(
+    async (income: Insert<'monthly_incomes'>) => check(await supabase.from('monthly_incomes').upsert(income)),
+    [['incomes']],
+  )
+}
+
+export function useDeleteIncome() {
+  return useInvalidating(
+    async ({ profile_id, month }: { profile_id: string; month: string }) =>
+      check(await supabase.from('monthly_incomes').delete().eq('profile_id', profile_id).eq('month', month)),
+    [['incomes']],
+  )
+}
+
+export function useClosePeriod() {
+  return useInvalidating(
+    async (period: Insert<'periods'>) => check(await supabase.from('periods').insert(period)),
+    [['periods']],
+  )
+}
+
+export function useReopenPeriod() {
+  return useInvalidating(
+    async ({ household_id, month }: { household_id: string; month: string }) =>
+      check(await supabase.from('periods').delete().eq('household_id', household_id).eq('month', month)),
+    [['periods']],
   )
 }
 

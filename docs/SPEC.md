@@ -105,19 +105,22 @@ It is not an expense and never appears in spending analytics.
 
 ### 5.1 Periods
 - A **period** is a calendar month.
-- States: `open` → `closed`. Entries in a closed period are **locked**; editing requires reopening the period
-  (which invalidates its settlement computation until it is closed again).
+- States: `open` → `closed`. Entries that affect the balance (everything except *Personal*) in a closed month
+  are **locked**, and so are its incomes; editing requires reopening the month, which drops its ratio snapshot
+  until it is closed again. Personal entries stay editable (they never affect the balance).
 
 ### 5.2 Ratio modes
 Chosen **globally** (household setting), can be changed at any time; the mode in force is **snapshotted**
 into each period when it closes:
 - **50/50**
 - **Income-proportional** — ratio = my income / (my income + her income)
-- **Fixed manual** — e.g. 60/40
+- **Fixed manual** — e.g. 60/40 (stored as the share of one named person)
 
 ### 5.3 Monthly income
 - At (or after) the end of each month, each user enters their **net income for that month**.
 - If a user hasn't entered it, the app falls back to their **reference income** (a default monthly amount set in settings) and marks the ratio as *estimated*.
+- If an income is still unknown (no entry and no reference income), the month uses 50/50, marked *estimated*.
+- An entered income of 0 is valid (that person bears 0% of that month's shared entries).
 
 ### 5.4 Closing a period
 1. App shows: total shared spend, incomes, the resulting ratio, what each should have paid vs actually paid.
@@ -126,8 +129,9 @@ into each period when it closes:
 4. The transfer is recorded as a **settlement** (can be recorded later; unpaid balances carry over).
 
 ### 5.5 Running balance (open period)
-During the month, the home screen shows a **live estimated balance**, computed with the ratio of the
-last closed period (or reference incomes). Clearly labelled "estimate".
+The balance shown everywhere is the total over the whole history: closed months use their snapshot ratio,
+open months use a ratio computed live from the current mode and the incomes entered (with the fallbacks above).
+It is labelled "estimate" when an open month uses an estimated ratio.
 
 ### 5.6 Yearly adjustment (optional)
 Monthly incomes fluctuate (bonuses, 13th month, etc.). Optionally, once a year:

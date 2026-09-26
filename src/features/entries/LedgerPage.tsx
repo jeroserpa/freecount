@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { PageHeader, Segmented, Spinner } from '../../components/ui'
 import {
   useCategories,
@@ -9,9 +9,11 @@ import {
   type Entry,
   type Settlement,
 } from '../../data/queries'
+import { useMonthRatios } from '../../data/ratios'
 import { signedAmount, userShareCents } from '../../domain/balance'
 import { currentMonth, formatDay, formatMonth, isValidMonth, monthRange, shiftMonth } from '../../domain/dates'
 import { formatCents } from '../../domain/money'
+import { formatShare } from '../../domain/ratio'
 import { EntryRow } from './EntryRow'
 
 type Scope = 'all' | 'shared' | 'personal'
@@ -29,6 +31,7 @@ export function LedgerPage() {
   const { data: categories = [] } = useCategories()
   const { me, partner } = useMembers()
   const deleteSettlement = useDeleteSettlement()
+  const ratios = useMonthRatios()
 
   function update(patch: Record<string, string | null>) {
     const next = new URLSearchParams(params)
@@ -48,7 +51,8 @@ export function LedgerPage() {
       (!categoryFilter || e.category_id === categoryFilter),
   )
   const total = filtered.reduce((s, e) => s + signedAmount(e), 0)
-  const myCost = filtered.reduce((s, e) => s + userShareCents(e, me.id), 0)
+  const ratio = ratios.ratioFor(month)
+  const myCost = filtered.reduce((s, e) => s + userShareCents(e, me.id, ratio.shareMe), 0)
 
   // Group entries (and settlements, when unfiltered) by day, newest first.
   type Item = { type: 'entry'; entry: Entry } | { type: 'settlement'; settlement: Settlement }
@@ -73,6 +77,14 @@ export function LedgerPage() {
         <button className="font-semibold" onClick={() => update({ month: null })}>{formatMonth(month)}</button>
         <button className="btn-secondary px-3 py-1.5" onClick={() => update({ month: shiftMonth(month, 1) })}>›</button>
       </div>
+
+      {partner && ratios.ready && (
+        <Link to={`/balance/${month}`} className="muted mb-3 block text-center text-xs">
+          {ratio.closed ? '🔒 Closed · ' : ''}Split: you {formatShare(ratio.shareMe)} · {partner.display_name}{' '}
+          {formatShare(1 - ratio.shareMe)}
+          {ratio.estimated && !ratio.closed ? ' (estimate)' : ''} ›
+        </Link>
+      )}
 
       <Segmented
         value={scope}

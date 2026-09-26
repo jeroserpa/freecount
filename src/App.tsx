@@ -3,6 +3,8 @@ import { Spinner } from './components/ui'
 import { useMe, useRealtimeSync } from './data/queries'
 import { useSession } from './data/session'
 import { LoginPage } from './features/auth/LoginPage'
+import { BalancePage } from './features/balance/BalancePage'
+import { MonthPage } from './features/balance/MonthPage'
 import { SettlePage } from './features/balance/SettlePage'
 import { EntryFormPage } from './features/entries/EntryFormPage'
 import { LedgerPage } from './features/entries/LedgerPage'
@@ -31,12 +33,14 @@ function SignedInApp() {
       <Route element={<TabLayout />}>
         <Route index element={<HomePage />} />
         <Route path="ledger" element={<LedgerPage />} />
-        <Route path="settle" element={<SettlePage />} />
+        <Route path="balance" element={<BalancePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route element={<PlainLayout />}>
         <Route path="add" element={<EntryFormPage />} />
         <Route path="entry/:id" element={<EntryFormPage />} />
+        <Route path="settle" element={<SettlePage />} />
+        <Route path="balance/:month" element={<MonthPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -76,8 +80,8 @@ function TabLayout() {
           >
             +
           </NavLink>
-          <NavLink to="/settle" className={tab}>
-            <span className="text-xl">⇄</span>Settle
+          <NavLink to="/balance" className={tab}>
+            <span className="text-xl">⚖️</span>Balance
           </NavLink>
           <NavLink to="/settings" className={tab}>
             <span className="text-xl">⚙️</span>Settings

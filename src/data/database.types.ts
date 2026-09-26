@@ -69,6 +69,7 @@ export type Database = {
         Row: {
           created_at: string
           fixed_ratio: number | null
+          fixed_ratio_profile_id: string | null
           id: string
           invite_code: string
           name: string
@@ -77,12 +78,61 @@ export type Database = {
         Insert: {
           created_at?: string
           fixed_ratio?: number | null
+          fixed_ratio_profile_id?: string | null
           id?: string
           invite_code?: string
           name?: string
           ratio_mode?: string
         }
         Update: Partial<Database['public']['Tables']['households']['Insert']>
+        Relationships: []
+      }
+      monthly_incomes: {
+        Row: {
+          household_id: string
+          income_cents: number
+          month: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          household_id: string
+          income_cents: number
+          month: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['monthly_incomes']['Insert']>
+        Relationships: []
+      }
+      periods: {
+        Row: {
+          closed_at: string
+          closed_by: string
+          estimated: boolean
+          household_id: string
+          income_a_cents: number | null
+          income_b_cents: number | null
+          month: string
+          profile_a_id: string
+          profile_b_id: string
+          ratio_mode: string
+          share_a: number
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string
+          estimated?: boolean
+          household_id: string
+          income_a_cents?: number | null
+          income_b_cents?: number | null
+          month: string
+          profile_a_id: string
+          profile_b_id: string
+          ratio_mode: string
+          share_a: number
+        }
+        Update: Partial<Database['public']['Tables']['periods']['Insert']>
         Relationships: []
       }
       profiles: {

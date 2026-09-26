@@ -12,9 +12,14 @@ Read `docs/SPEC.md` (what) and `docs/ARCHITECTURE.md` (how) before making change
 
 ## Commands
 `npm test` · `npm run build` (runs `tsc -b`) · `npm run lint` (oxlint) — all must pass before pushing.
+`npm run e2e` — builds and drives the app in headless Chromium against an in-memory mock of the Supabase REST API
+(`e2e/mock-backend.mjs`, scenario in `e2e/smoke.mjs`, screenshots in `e2e/screenshots/`). The dev container
+cannot reach Supabase, so RLS/triggers are tested with SQL (DO block that ends with `raise exception` to roll back)
+through the Supabase MCP instead. Extend the smoke scenario when adding user-facing features.
 
 ## Layout
-- `src/domain/` pure logic (money, balance, dates)
-- `src/data/` Supabase client, generated types, TanStack Query hooks (`queries.ts`), session
+- `src/domain/` pure logic (money, balance, ratio, dates)
+- `src/data/` Supabase client, generated types, TanStack Query hooks (`queries.ts`), session,
+  `ratios.ts` (ratio for any month), `balance.ts` (total balance hook)
 - `src/features/<area>/` screens
 - `src/components/ui.tsx` shared UI bits

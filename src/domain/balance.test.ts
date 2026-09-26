@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { netBalance, otherShareCents, userShareCents, type BalanceEntry } from './balance'
+import {
+  householdBalance,
+  monthSummary,
+  netBalance,
+  otherShareCents,
+  userShareCents,
+  type BalanceEntry,
+  type DatedBalanceEntry,
+} from './balance'
 
 const A = 'me'
 const B = 'her'
@@ -17,6 +25,10 @@ describe('otherShareCents', () => {
   it('splits shared entries by ratio, leftover cent stays with payer', () => {
     expect(otherShareCents(e({ amount_cents: 1001 }), 0.5)).toBe(500)
     expect(otherShareCents(e({ amount_cents: 10000 }), 0.42)).toBe(4200)
+  })
+  it('is not fooled by float artefacts', () => {
+    expect(otherShareCents(e({ amount_cents: 100 }), 0.29)).toBe(29)
+    expect(otherShareCents(e({ amount_cents: 1000 }), 1 - 0.7)).toBe(300)
   })
   it('handles personal, custom and for_other', () => {
     expect(otherShareCents(e({ split_type: 'personal' }), 0.5)).toBe(0)
@@ -93,5 +105,56 @@ describe('netBalance', () => {
 
   it('ignores entries from unknown payers', () => {
     expect(netBalance(A, B, [e({ payer_id: 'someone' })], [])).toBe(0)
+  })
+})
+
+describe('householdBalance', () => {
+  const d = (date: string, partial: Partial<BalanceEntry>): DatedBalanceEntry => ({ ...e(partial), date })
+
+  it('applies each month its own ratio', () => {
+    const entries = [
+      d('2026-08-15', { payer_id: A, amount_cents: 10000 }), // August: A bears 60% → B owes 40€
+      d('2026-09-02', { payer_id: A, amount_cents: 10000 }), // September: 50/50 → B owes 50€
+    ]
+    const shareA = (m: string) => (m === '2026-08' ? 0.6 : 0.5)
+    expect(householdBalance(A, B, entries, [], shareA)).toBe(9000)
+  })
+
+  it('includes settlements once', () => {
+    const entries = [d('2026-08-15', { payer_id: B, amount_cents: 10000 })]
+    const settle = [{ from_id: A, to_id: B, amount_cents: 5000 }]
+    expect(householdBalance(A, B, entries, settle, () => 0.5)).toBe(0)
+  })
+
+  it('matches netBalance with a constant ratio', () => {
+    const entries = [
+      d('2026-07-01', { payer_id: A, amount_cents: 1234 }),
+      d('2026-08-01', { payer_id: B, amount_cents: 999, kind: 'refund' }),
+      d('2026-09-01', { payer_id: B, amount_cents: 5000, split_type: 'custom', payer_share_cents: 1000 }),
+    ]
+    expect(householdBalance(A, B, entries, [], () => 0.37)).toBe(netBalance(A, B, entries, [], 0.37))
+  })
+})
+
+describe('monthSummary', () => {
+  it('computes paid, cost and net', () => {
+    const entries = [
+      e({ payer_id: B, amount_cents: 20000 }),
+      e({ payer_id: A, amount_cents: 6000, kind: 'refund' }),
+      e({ payer_id: A, amount_cents: 4550 }),
+      e({ payer_id: A, amount_cents: 1500, split_type: 'personal' }),
+    ]
+    const s = monthSummary(A, B, entries, 0.5)
+    expect(s.sharedTotal).toBe(18550)
+    expect(s.paidA).toBe(-1450)
+    expect(s.paidB).toBe(20000)
+    expect(s.costA + s.costB).toBe(s.sharedTotal)
+    expect(s.net).toBe(netBalance(A, B, entries, [], 0.5))
+    expect(s.net).toBe(-10725)
+  })
+
+  it('uses the ratio for shared entries', () => {
+    const s = monthSummary(A, B, [e({ payer_id: A, amount_cents: 10000 })], 0.6)
+    expect(s).toMatchObject({ costA: 6000, costB: 4000, net: 4000 })
   })
 })
