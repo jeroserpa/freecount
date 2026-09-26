@@ -162,7 +162,7 @@ export function ColumnChart({
       )}
       {hovered && hoveredIndex >= 0 && (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+          className="pointer-events-none absolute z-10 -transtone-x-1/2 whitespace-nowrap rounded-lg bg-stone-900 px-2.5 py-1.5 text-xs text-white shadow-lg dark:bg-stone-100 dark:text-stone-900"
           style={{
             left: Math.min(Math.max(AXIS_W + band * hoveredIndex + band / 2, 60), width - 60),
             top: 0,

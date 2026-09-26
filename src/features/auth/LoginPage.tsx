@@ -25,8 +25,14 @@ export function LoginPage() {
             options: { data: { display_name: name.trim() }, emailRedirectTo: window.location.origin },
           })
     setBusy(false)
-    if (error) setError(error)
-    else if (mode === 'signup' && !data.session) setInfo('Check your inbox to confirm your email, then sign in.')
+    if (error) {
+      // The database refuses a third account (see supabase/migrations/…_signup_lock.sql).
+      setError(
+        mode === 'signup' && /database error saving new user|sign-ups are closed/i.test(error.message)
+          ? 'Sign-ups are closed: this Freecount already has its two accounts.'
+          : error,
+      )
+    } else if (mode === 'signup' && !data.session) setInfo('Check your inbox to confirm your email, then sign in.')
   }
 
   return (

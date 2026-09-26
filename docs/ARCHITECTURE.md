@@ -91,6 +91,10 @@ Sign-up creates a `profiles` row (trigger). The first person calls the `create_h
 default categories); the second calls `join_household(invite_code)`. A household holds at most 2 members.
 RLS helper functions live in a non-exposed `private` schema.
 
+### Account limit
+`private.limit_accounts` (before insert on `auth.users`) refuses a 3rd account, independently of the dashboard's
+sign-up switch. SQL tests bypass it with `set local freecount.allow_extra_accounts = 'on'`.
+
 ### Row Level Security
 - Every table: a row is visible only if `household_id` = the caller's household.
 - `entries`: additionally, `split_type = 'personal'` rows are visible/editable **only** by `payer_id = auth.uid()`.

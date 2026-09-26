@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 export function PageHeader({ title, back, action }: { title: string; back?: string; action?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-2 bg-slate-50/90 px-4 pb-3 pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur dark:bg-slate-950/90">
+    <header className="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-2 bg-stone-50/90 px-4 pb-3 pt-[max(env(safe-area-inset-top),0.75rem)] backdrop-blur dark:bg-stone-950/90">
       {back && (
         <Link to={back} className="-ml-2 rounded-full px-2 py-1 text-2xl leading-none" aria-label="Back">
           ‹
@@ -26,14 +26,14 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div className="flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+    <div className="flex rounded-xl bg-stone-100 p-1 dark:bg-stone-800">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
           className={`min-w-0 flex-1 truncate rounded-lg px-2 py-1.5 text-sm font-medium transition ${
-            value === o.value ? 'bg-white shadow-sm dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'
+            value === o.value ? 'bg-white shadow-sm dark:bg-stone-600' : 'text-stone-500 dark:text-stone-400'
           }`}
         >
           {o.label}
@@ -46,7 +46,7 @@ export function Segmented<T extends string>({
 export function Spinner() {
   return (
     <div className="flex justify-center py-10">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-300 border-t-brand-600" />
     </div>
   )
 }

@@ -387,6 +387,25 @@ export async function fetchAllEntries(): Promise<Entry[]> {
   return (await fetchAll((a, b) => supabase.from('entries').select('*').order('date').order('id').range(a, b))) as Entry[]
 }
 
+/** Everything I can see, as one JSON-serialisable object (Settings → Your data → backup). */
+export async function fetchBackup() {
+  const all = <T extends keyof import('./database.types').Database['public']['Tables']>(table: T) =>
+    fetchAll((a, b) => supabase.from(table).select('*').range(a, b))
+  const [households, profiles, categories, entries, settlements, monthly_incomes, periods, recurring_templates, pending_recurring, yearly_adjustments] =
+    await Promise.all([
+      all('households'), all('profiles'), all('categories'), all('entries'), all('settlements'), all('monthly_incomes'),
+      all('periods'), all('recurring_templates'), all('pending_recurring'), all('yearly_adjustments'),
+    ])
+  return {
+    app: 'freecount',
+    format: 1,
+    exported_at: new Date().toISOString(),
+    note: 'Amounts are integer cents. Personal entries of the other person are not included (they are private).',
+    households, profiles, categories, entries, settlements, monthly_incomes, periods,
+    recurring_templates, pending_recurring, yearly_adjustments,
+  }
+}
+
 /** Run the generator now (after creating or editing a template). */
 export async function processRecurringNow() {
   const { error } = await supabase.rpc('process_recurring', { p_today: todayISO() })

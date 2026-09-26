@@ -177,7 +177,7 @@ export function StatsPage() {
             </h2>
             <div className="flex items-center gap-3 text-sm">
               {categoryFilter && (
-                <button className="font-medium text-brand-600" onClick={() => update({ category: null })}>
+                <button className="font-medium text-brand-600 dark:text-brand-400" onClick={() => update({ category: null })}>
                   All ✕
                 </button>
               )}
@@ -335,7 +335,7 @@ function CategoryRow({
           </span>
           <span className="font-semibold tabular-nums">{formatCents(value)}</span>
         </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <div className="mt-1 h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
           <div
             className="h-full rounded-r-[4px]"
             style={{ width: `${Math.max(1, (Math.max(0, value) / max) * 100)}%`, background: 'var(--chart-accent)' }}

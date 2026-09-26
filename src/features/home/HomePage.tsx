@@ -61,7 +61,7 @@ export function HomePage() {
       <section className="card mt-4">
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="font-semibold">{formatMonth(month)}</h2>
-          <Link to="/ledger" className="text-sm font-medium text-brand-600">Ledger ›</Link>
+          <Link to="/ledger" className="text-sm font-medium text-brand-600 dark:text-brand-400">Ledger ›</Link>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
           <Stat label="Shared spend" value={sharedTotal} />
@@ -77,7 +77,7 @@ export function HomePage() {
         ) : monthEntries.length === 0 ? (
           <p className="muted py-6 text-center text-sm">No expenses this month yet. Tap + to add one.</p>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-stone-100 dark:divide-stone-800">
             {monthEntries.slice(0, 8).map((e) => (
               <EntryRow key={e.id} entry={e} category={catById.get(e.category_id ?? '')} meId={me.id} partner={partner} />
             ))}
@@ -90,7 +90,7 @@ export function HomePage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-1 py-2 dark:bg-slate-800/60">
+    <div className="rounded-xl bg-stone-50 px-1 py-2 dark:bg-stone-800/60">
       <p className="text-base font-semibold tabular-nums">{formatCents(value)}</p>
       <p className="muted text-xs">{label}</p>
     </div>

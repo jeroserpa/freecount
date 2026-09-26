@@ -71,12 +71,12 @@ export function RecurringPage() {
             <span className="text-lg font-semibold tabular-nums">{formatCents(monthly)}</span>
           </div>
           {active.length > 0 && (
-            <div className="card divide-y divide-slate-100 py-1 dark:divide-slate-800">{active.map(row)}</div>
+            <div className="card divide-y divide-stone-100 py-1 dark:divide-stone-800">{active.map(row)}</div>
           )}
           {inactive.length > 0 && (
             <>
               <h2 className="muted mb-1 mt-5 px-1 text-xs font-semibold uppercase tracking-wide">Paused or ended</h2>
-              <div className="card divide-y divide-slate-100 py-1 opacity-70 dark:divide-slate-800">
+              <div className="card divide-y divide-stone-100 py-1 opacity-70 dark:divide-stone-800">
                 {inactive.map(row)}
               </div>
             </>

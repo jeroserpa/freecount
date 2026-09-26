@@ -11,7 +11,7 @@ export function SyncBanner() {
       {(!online || pending > 0) && (
         <div
           role="status"
-          className="mb-3 rounded-xl bg-slate-800 px-3 py-2 text-sm text-white dark:bg-slate-200 dark:text-slate-900"
+          className="mb-3 rounded-xl bg-stone-800 px-3 py-2 text-sm text-white dark:bg-stone-200 dark:text-stone-900"
         >
           {online ? '🔄 Syncing' : '📴 Offline'}
           {pending > 0

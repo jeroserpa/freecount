@@ -20,7 +20,7 @@ export function PendingCard() {
   return (
     <section className="card mt-4 ring-2 ring-amber-400/60">
       <h2 className="mb-1 font-semibold">🔔 To confirm</h2>
-      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="divide-y divide-stone-100 dark:divide-stone-800">
         {items.map(({ p, t }) => (
           <div key={p.id} className="flex items-center gap-3 py-2.5">
             <CategoryBadge category={catById.get(t!.category_id ?? '')} />

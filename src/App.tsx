@@ -71,7 +71,7 @@ function PlainLayout() {
 function TabLayout() {
   const tab = ({ isActive }: { isActive: boolean }) =>
     `flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
-      isActive ? 'text-brand-600' : 'text-slate-500 dark:text-slate-400'
+      isActive ? 'text-brand-600 dark:text-brand-400' : 'text-stone-500 dark:text-stone-400'
     }`
   return (
     <>
@@ -81,7 +81,7 @@ function TabLayout() {
           <SyncBanner />
         </div>
       </main>
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-stone-800 dark:bg-stone-900/95">
         <div className="mx-auto flex max-w-md items-center">
           <NavLink to="/" end className={tab}>
             <span className="text-xl">🏠</span>Home

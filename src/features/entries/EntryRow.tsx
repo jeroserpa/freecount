@@ -37,7 +37,7 @@ export function EntryRow({
           {entry.recurring_template_id && ' · 🔁'}
         </p>
       </div>
-      <span className={`font-semibold tabular-nums ${refund ? 'text-brand-600' : ''}`}>
+      <span className={`font-semibold tabular-nums ${refund ? 'text-brand-600 dark:text-brand-400' : ''}`}>
         {refund ? '+' : ''}
         {formatCents(entry.amount_cents)}
       </span>

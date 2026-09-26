@@ -153,7 +153,7 @@ function CategoriesCard({ householdId }: { householdId: string }) {
     <section className="card">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="font-semibold">Categories</h2>
-        <button className="text-sm font-medium text-brand-600" onClick={() => setEditing('new')}>+ Add</button>
+        <button className="text-sm font-medium text-brand-600 dark:text-brand-400" onClick={() => setEditing('new')}>+ Add</button>
       </div>
       {editing === 'new' && (
         <CategoryEditor
@@ -162,11 +162,11 @@ function CategoriesCard({ householdId }: { householdId: string }) {
           onDone={() => setEditing(null)}
         />
       )}
-      <div className="divide-y divide-slate-100 dark:divide-slate-800">{active.map(row)}</div>
+      <div className="divide-y divide-stone-100 dark:divide-stone-800">{active.map(row)}</div>
       {archived.length > 0 && (
         <>
           <h3 className="muted mt-4 text-xs font-semibold uppercase tracking-wide">Archived</h3>
-          <div className="divide-y divide-slate-100 opacity-60 dark:divide-slate-800">{archived.map(row)}</div>
+          <div className="divide-y divide-stone-100 opacity-60 dark:divide-stone-800">{archived.map(row)}</div>
         </>
       )}
       <ErrorNote error={save.error} />

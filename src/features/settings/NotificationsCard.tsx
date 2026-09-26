@@ -38,7 +38,7 @@ export function NotificationsCard() {
     <section className="card space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-semibold">🔔 Notifications</h2>
-        {status === 'enabled' && <span className="text-sm font-medium text-brand-600">On for this device</span>}
+        {status === 'enabled' && <span className="text-sm font-medium text-brand-600 dark:text-brand-400">On for this device</span>}
       </div>
       <div className="muted text-sm">
         Get notified when:
