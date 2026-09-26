@@ -1,4 +1,5 @@
 import { NavLink, Navigate, Outlet, Route, Routes } from 'react-router'
+import { SyncBanner } from './components/SyncBanner'
 import { Spinner } from './components/ui'
 import { useMe, useProcessRecurring, useRealtimeSync } from './data/queries'
 import { useSession } from './data/session'
@@ -58,6 +59,9 @@ function PlainLayout() {
   return (
     <main className="mx-auto max-w-md px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]">
       <Outlet />
+      <div className="mt-4">
+        <SyncBanner />
+      </div>
     </main>
   )
 }
@@ -71,6 +75,9 @@ function TabLayout() {
     <>
       <main className="mx-auto max-w-md px-4 pb-28">
         <Outlet />
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mx-auto max-w-md px-4">
+          <SyncBanner />
+        </div>
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
         <div className="mx-auto flex max-w-md items-center">

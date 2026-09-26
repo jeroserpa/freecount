@@ -4,6 +4,7 @@ import type { EntryKind, SplitType } from '../domain/balance'
 import { todayISO } from '../domain/dates'
 import type { Frequency } from '../domain/recurrence'
 import type { Insert, Row, Update } from './database.types'
+import { clearPersistedCache, ENTRY_DELETE, ENTRY_SAVE, type EntrySavePayload } from './offline'
 import { useUserId } from './session'
 import { supabase } from './supabase'
 
@@ -280,18 +281,13 @@ export function useUpdateHousehold() {
   )
 }
 
+/** Saving/deleting entries works offline: see offline.ts (queued, optimistic, replayed in order). */
 export function useSaveEntry() {
-  return useInvalidating(
-    async (entry: Insert<'entries'> & { id: string }) => check(await supabase.from('entries').upsert(entry)),
-    [['entries'], ['entry']],
-  )
+  return useMutation<void, Error, EntrySavePayload>({ mutationKey: ENTRY_SAVE })
 }
 
 export function useDeleteEntry() {
-  return useInvalidating(
-    async (id: string) => check(await supabase.from('entries').delete().eq('id', id)),
-    [['entries']],
-  )
+  return useMutation<void, Error, string>({ mutationKey: ENTRY_DELETE })
 }
 
 export function useSaveCategory() {
@@ -388,6 +384,7 @@ export async function processRecurringNow() {
 
 export async function signOut() {
   await supabase.auth.signOut()
+  await clearPersistedCache()
 }
 
 export function errorMessage(err: unknown): string {

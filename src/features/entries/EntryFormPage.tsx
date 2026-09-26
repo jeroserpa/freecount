@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { ErrorNote, PageHeader, Spinner } from '../../components/ui'
@@ -121,6 +122,19 @@ function EntryForm({
     if (!result.ok) return setError(result.error)
     const every = parseEvery(schedule.every)
     if (repeat && !every) return setError('“Every” must be a whole number between 1 and 52')
+
+    if (!onlineManager.isOnline()) {
+      if (repeat || reminder) return setError('You’re offline. Repeating and confirming reminders need a connection.')
+      // Queued: shown right away, synced when the connection is back (see data/offline.ts).
+      save.mutate({
+        id: entry?.id ?? crypto.randomUUID(),
+        household_id: me.household_id!,
+        ...result.value,
+        date: draft.date,
+        recurring_template_id: entry?.recurring_template_id ?? null,
+      })
+      return goBack()
+    }
 
     setBusy(true)
     try {
@@ -264,7 +278,12 @@ function EntryForm({
             className="btn-danger w-full"
             disabled={remove.isPending || originalLocked}
             onClick={() => {
-              if (confirm('Delete this entry?')) remove.mutate(entry.id, { onSuccess: goBack })
+              if (!confirm('Delete this entry?')) return
+              if (onlineManager.isOnline()) remove.mutate(entry.id, { onSuccess: goBack })
+              else {
+                remove.mutate(entry.id)
+                goBack()
+              }
             }}
           >
             Delete
