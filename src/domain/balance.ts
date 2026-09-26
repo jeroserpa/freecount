@@ -28,7 +28,8 @@ export function otherShareCents(entry: BalanceEntry, otherRatio: number): number
     case 'personal':
       return 0
     case 'shared':
-      return Math.floor(entry.amount_cents * otherRatio)
+      // Epsilon guards against float artefacts (e.g. 100 * 0.29 = 28.999999999999996).
+      return Math.floor(entry.amount_cents * otherRatio + 1e-6)
     case 'custom':
       return entry.amount_cents - (entry.payer_share_cents ?? entry.amount_cents)
     case 'for_other':
@@ -90,4 +91,61 @@ export function netBalance(
   }
 
   return bOwesA
+}
+
+export interface DatedBalanceEntry extends BalanceEntry {
+  date: string // YYYY-MM-DD
+}
+
+/**
+ * Net balance over the whole history, where each month's "shared" entries use that month's ratio.
+ * Positive result: B owes A. `shareAForMonth` returns A's share for a "YYYY-MM" month.
+ */
+export function householdBalance(
+  userA: string,
+  userB: string,
+  entries: DatedBalanceEntry[],
+  settlements: BalanceSettlement[],
+  shareAForMonth: (month: string) => number,
+): number {
+  const byMonth = new Map<string, DatedBalanceEntry[]>()
+  for (const e of entries) {
+    const month = e.date.slice(0, 7)
+    const list = byMonth.get(month)
+    if (list) list.push(e)
+    else byMonth.set(month, [e])
+  }
+  let total = netBalance(userA, userB, [], settlements)
+  for (const [month, list] of byMonth) {
+    total += netBalance(userA, userB, list, [], shareAForMonth(month))
+  }
+  return total
+}
+
+export interface MonthSummary {
+  /** Net shared spending (expenses minus refunds), excluding personal entries. */
+  sharedTotal: number
+  paidA: number
+  paidB: number
+  /** What each person should bear. */
+  costA: number
+  costB: number
+  /** Positive: B owes A for this month alone. */
+  net: number
+}
+
+export function monthSummary(userA: string, userB: string, entries: BalanceEntry[], shareA: number): MonthSummary {
+  const s: MonthSummary = { sharedTotal: 0, paidA: 0, paidB: 0, costA: 0, costB: 0, net: 0 }
+  for (const e of entries) {
+    if (e.split_type === 'personal') continue
+    if (e.payer_id !== userA && e.payer_id !== userB) continue
+    const amount = signedAmount(e)
+    s.sharedTotal += amount
+    if (e.payer_id === userA) s.paidA += amount
+    else s.paidB += amount
+    s.costA += userShareCents(e, userA, shareA)
+    s.costB += userShareCents(e, userB, 1 - shareA)
+  }
+  s.net = s.paidA - s.costA
+  return s
 }

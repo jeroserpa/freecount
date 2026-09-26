@@ -1,16 +1,12 @@
 import { Link } from 'react-router'
 import { PageHeader, Spinner } from '../../components/ui'
-import {
-  useBalanceEntries,
-  useCategories,
-  useEntries,
-  useHousehold,
-  useMembers,
-  useSettlements,
-} from '../../data/queries'
-import { netBalance, signedAmount, userShareCents } from '../../domain/balance'
+import { useHouseholdBalance } from '../../data/balance'
+import { useCategories, useEntries, useHousehold, useMembers } from '../../data/queries'
+import { useMonthRatios } from '../../data/ratios'
+import { signedAmount, userShareCents } from '../../domain/balance'
 import { currentMonth, formatMonth, monthRange } from '../../domain/dates'
 import { formatCents } from '../../domain/money'
+import { BalanceCard } from '../balance/BalanceCard'
 import { EntryRow } from '../entries/EntryRow'
 import { InviteCard } from '../settings/InviteCard'
 
@@ -20,8 +16,8 @@ export function HomePage() {
   const month = currentMonth()
   const [from, to] = monthRange(month)
   const entries = useEntries(from, to)
-  const balanceEntries = useBalanceEntries()
-  const settlements = useSettlements()
+  const balance = useHouseholdBalance()
+  const ratios = useMonthRatios()
   const { data: categories = [] } = useCategories()
 
   if (!me) return <Spinner />
@@ -29,7 +25,8 @@ export function HomePage() {
   const monthEntries = entries.data ?? []
   const shared = monthEntries.filter((e) => e.split_type !== 'personal')
   const sharedTotal = shared.reduce((s, e) => s + signedAmount(e), 0)
-  const myShare = shared.reduce((s, e) => s + userShareCents(e, me.id), 0)
+  const shareMe = ratios.ratioFor(month).shareMe
+  const myShare = shared.reduce((s, e) => s + userShareCents(e, me.id, shareMe), 0)
   const myPersonal = monthEntries
     .filter((e) => e.split_type === 'personal')
     .reduce((s, e) => s + signedAmount(e), 0)
@@ -42,8 +39,9 @@ export function HomePage() {
 
       {partner && (
         <BalanceCard
-          loading={balanceEntries.isLoading || settlements.isLoading}
-          net={netBalance(me.id, partner.id, balanceEntries.data ?? [], settlements.data ?? [])}
+          loading={balance.loading}
+          net={balance.net}
+          estimated={balance.estimated}
           partnerName={partner.display_name}
         />
       )}
@@ -75,29 +73,6 @@ export function HomePage() {
         )}
       </section>
     </>
-  )
-}
-
-function BalanceCard({ net, partnerName, loading }: { net: number; partnerName: string; loading: boolean }) {
-  return (
-    <section className="card bg-gradient-to-br from-brand-600 to-brand-700 text-white ring-0 dark:from-brand-700 dark:to-emerald-900">
-      <p className="text-sm text-white/80">Balance</p>
-      {loading ? (
-        <p className="py-2 text-2xl font-bold">…</p>
-      ) : net === 0 ? (
-        <p className="py-2 text-2xl font-bold">All square 🎉</p>
-      ) : (
-        <p className="py-2 text-2xl font-bold">
-          {net > 0 ? `${partnerName} owes you` : `You owe ${partnerName}`}{' '}
-          <span className="tabular-nums">{formatCents(Math.abs(net))}</span>
-        </p>
-      )}
-      {net !== 0 && !loading && (
-        <Link to="/settle" className="btn mt-1 bg-white/15 px-3 py-1.5 text-sm text-white hover:bg-white/25">
-          Settle up
-        </Link>
-      )}
-    </section>
   )
 }
 

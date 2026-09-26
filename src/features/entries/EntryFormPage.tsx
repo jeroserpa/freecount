@@ -11,9 +11,11 @@ import {
   type Entry,
   type Profile,
 } from '../../data/queries'
+import { useMonthRatios } from '../../data/ratios'
 import type { EntryKind, SplitType } from '../../domain/balance'
-import { todayISO } from '../../domain/dates'
+import { formatMonth, todayISO } from '../../domain/dates'
 import { centsToInput, formatCents, parseEuros } from '../../domain/money'
+import { formatShare } from '../../domain/ratio'
 
 export function EntryFormPage() {
   const { id } = useParams()
@@ -50,6 +52,7 @@ function EntryForm({
   const location = useLocation()
   const save = useSaveEntry()
   const remove = useDeleteEntry()
+  const ratios = useMonthRatios()
 
   const [kind, setKind] = useState<EntryKind>(entry?.kind ?? 'expense')
   const [amount, setAmount] = useState(entry ? centsToInput(entry.amount_cents) : '')
@@ -70,6 +73,10 @@ function EntryForm({
   const payerName = payerId === me.id ? 'You' : (partner?.display_name ?? 'Partner')
   const otherName = payerId === me.id ? (partner?.display_name ?? 'partner') : 'you'
   const visibleCategories = categories.filter((c) => !c.archived || c.id === categoryId)
+  const monthRatio = ratios.ratioFor(date.slice(0, 7))
+  // Shared entries of a closed month are locked (the database enforces it too).
+  const originalLocked = !!entry && entry.split_type !== 'personal' && ratios.ratioFor(entry.date.slice(0, 7)).closed
+  const locked = originalLocked || (split !== 'personal' && monthRatio.closed)
 
   function customPayerShareCents(): number | null {
     if (amountCents == null) return null
@@ -125,13 +132,19 @@ function EntryForm({
         title={entry ? 'Edit' : kind === 'refund' ? 'New refund' : 'New expense'}
         back="/"
         action={
-          <button className="btn-primary px-5 py-2" disabled={save.isPending}>
+          <button className="btn-primary px-5 py-2" disabled={save.isPending || locked}>
             Save
           </button>
         }
       />
 
       <div className="space-y-5">
+        {locked && (
+          <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            🔒 {formatMonthShort(originalLocked ? entry!.date : date)} is closed. Reopen it from the Balance tab to change
+            shared entries.
+          </p>
+        )}
         <Segmented
           value={kind}
           onChange={setKind}
@@ -193,7 +206,10 @@ function EntryForm({
           <span className="label">Split</span>
           <Segmented value={split} onChange={setSplit} options={splitOptions} />
           <p className="muted mt-1.5 text-xs">
-            {split === 'shared' && 'Split with the household ratio (50/50 for now).'}
+            {split === 'shared' &&
+              (partner
+                ? `Split with this month’s ratio: you ${formatShare(monthRatio.shareMe)} · ${partner.display_name} ${formatShare(1 - monthRatio.shareMe)}${monthRatio.estimated && !monthRatio.closed ? ' (estimate, final when the month is closed)' : ''}.`
+                : 'Split with the household ratio.')}
             {split === 'custom' && `Set how much of it ${payerName === 'You' ? 'you' : payerName} bear${payerName === 'You' ? '' : 's'}.`}
             {split === 'for_other' && `100% for ${otherName}.`}
             {split === 'personal' && 'Only you can see it. Not counted in the balance.'}
@@ -248,7 +264,7 @@ function EntryForm({
           <button
             type="button"
             className="btn-danger w-full"
-            disabled={remove.isPending}
+            disabled={remove.isPending || originalLocked}
             onClick={() => {
               if (confirm('Delete this entry?')) remove.mutate(entry.id, { onSuccess: goBack })
             }}
@@ -260,3 +276,5 @@ function EntryForm({
     </form>
   )
 }
+
+const formatMonthShort = (date: string) => formatMonth(date.slice(0, 7))

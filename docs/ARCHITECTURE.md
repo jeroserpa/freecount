@@ -48,8 +48,8 @@ Note: Supabase free projects pause after ~1 week without activity; daily use kee
 All money is `bigint` **cents**. All ids are `uuid`. All tables carry `household_id` for RLS.
 
 ```
-households        id, name, invite_code, ratio_mode ('equal'|'income'|'fixed'), fixed_ratio_a (numeric, nullable),
-                  created_at
+households        id, name, invite_code, ratio_mode ('equal'|'income'|'fixed'),
+                  fixed_ratio (numeric 0..1) + fixed_ratio_profile_id (whose share it is), created_at
 
 profiles          id (= auth.users.id), household_id, display_name, emoji,
                   reference_monthly_income_cents
@@ -72,11 +72,12 @@ pending_recurring id, template_id, due_date, suggested_amount_cents, status ('pe
 monthly_incomes   household_id, profile_id, month (date, 1st of month), income_cents
                   PK (profile_id, month)
 
-periods           id, household_id, month, status ('open'|'closed'),
-                  ratio_mode, ratio_a (numeric snapshot), income_a_cents, income_b_cents,
-                  ratio_estimated (bool), closed_at, closed_by
+periods           household_id, month (1st of month) — a row means the month is CLOSED; reopening deletes it.
+                  ratio_mode, profile_a_id, profile_b_id, share_a (numeric(9,8) snapshot),
+                  income_a_cents, income_b_cents, estimated (bool), closed_at, closed_by
+                  PK (household_id, month)
 
-settlements       id, household_id, from_id, to_id, amount_cents, date, note, period_id (nullable)
+settlements       id, household_id, from_id, to_id, amount_cents, date, note
 
 yearly_adjustments id, household_id, year, income_a_cents, income_b_cents, ratio_a,
                   adjustment_cents (signed, + means B owes A), created_at
@@ -90,7 +91,8 @@ RLS helper functions live in a non-exposed `private` schema.
 ### Row Level Security
 - Every table: a row is visible only if `household_id` = the caller's household.
 - `entries`: additionally, `split_type = 'personal'` rows are visible/editable **only** by `payer_id = auth.uid()`.
-- `entries` in a closed period cannot be inserted/updated/deleted (checked by trigger).
+- Non-personal `entries` and `monthly_incomes` in a closed month cannot be inserted/updated/deleted
+  (`private.entries_lock` / `private.incomes_lock` triggers).
 
 ### Views (analytics)
 - `v_monthly_category_totals` (per user visibility enforced via `security_invoker` views over RLS'd tables).
