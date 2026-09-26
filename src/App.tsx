@@ -1,6 +1,6 @@
 import { NavLink, Navigate, Outlet, Route, Routes } from 'react-router'
 import { Spinner } from './components/ui'
-import { useMe, useRealtimeSync } from './data/queries'
+import { useMe, useProcessRecurring, useRealtimeSync } from './data/queries'
 import { useSession } from './data/session'
 import { LoginPage } from './features/auth/LoginPage'
 import { BalancePage } from './features/balance/BalancePage'
@@ -10,6 +10,8 @@ import { EntryFormPage } from './features/entries/EntryFormPage'
 import { LedgerPage } from './features/entries/LedgerPage'
 import { HomePage } from './features/home/HomePage'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
+import { RecurringPage } from './features/recurring/RecurringPage'
+import { TemplateFormPage } from './features/recurring/TemplateFormPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 
 export function App() {
@@ -28,6 +30,7 @@ function HouseholdGate() {
 
 function SignedInApp() {
   useRealtimeSync()
+  useProcessRecurring()
   return (
     <Routes>
       <Route element={<TabLayout />}>
@@ -41,6 +44,8 @@ function SignedInApp() {
         <Route path="entry/:id" element={<EntryFormPage />} />
         <Route path="settle" element={<SettlePage />} />
         <Route path="balance/:month" element={<MonthPage />} />
+        <Route path="recurring" element={<RecurringPage />} />
+        <Route path="recurring/:id" element={<TemplateFormPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

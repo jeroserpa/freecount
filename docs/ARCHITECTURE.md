@@ -63,11 +63,13 @@ entries           id, household_id, kind ('expense'|'refund'), amount_cents (>0)
                   payer_share_cents (custom only: part borne by the payer; the UI accepts € or %),
                   recurring_template_id (later), created_by, created_at, updated_at
 
-recurring_templates id, household_id, amount_cents, kind, category_id, payer_id, split_type,
-                  custom split fields, note, schedule_rule (e.g. 'monthly:1', 'yearly:03-15'),
-                  mode ('auto'|'reminder'), start_date, end_date, paused, next_due_date
+recurring_templates id, household_id, entry fields (kind, amount_cents, payer_id, category_id, note, split_type,
+                  payer_share_cents), frequency ('weekly'|'monthly'|'yearly'), every (N), mode ('auto'|'reminder'),
+                  start_date (anchor), end_date, occurrences (generated so far), next_due (trigger-maintained =
+                  occurrence #occurrences), paused, created_by
 
-pending_recurring id, template_id, due_date, suggested_amount_cents, status ('pending'|'confirmed'|'skipped')
+pending_recurring id, household_id, template_id, due_date, suggested_amount_cents,
+                  status ('pending'|'done'|'skipped'), entry_id; UNIQUE (template_id, due_date)
 
 monthly_incomes   household_id, profile_id, month (date, 1st of month), income_cents
                   PK (profile_id, month)
@@ -128,13 +130,18 @@ Settlements then move the net towards 0.
 
 ## 6. Recurring generation
 
-- `pg_cron` runs a SQL function daily: for each active template with `next_due_date <= today`,
-  - `auto` → insert an entry,
-  - `reminder` → insert a `pending_recurring` row (prefilled with last confirmed amount),
-  - then advance `next_due_date`.
-- Server-side so it happens even if nobody opens the app.
+- `private.process_household_recurring(household, today)`: for each active template with `next_due <= today`,
+  - `auto` → insert an entry (linked by `recurring_template_id`), unless its month is closed → reminder instead,
+  - `reminder` → insert a `pending_recurring` row (suggested amount = template amount = last confirmed),
+  - then `occurrences += 1` (the trigger recomputes `next_due` from `start_date`, so month-end dates don't drift).
+- Runs daily at 03:00 UTC via `pg_cron` (`private.process_all_recurring`), and when the app starts or returns to
+  the foreground on a new day (`public.process_recurring(p_today)` RPC, date clamped to ±1 day of the server).
+- `src/domain/recurrence.ts` mirrors the schedule math in TS (display, forecasts); both are tested against the
+  same cases.
+- Editing a template keeps its anchor unless the next date / frequency / interval changed (then it re-anchors
+  at the new next date with `occurrences = 0`).
 
-## 7. Project layout (planned)
+## 7. Project layout
 
 ```
 /src

@@ -1,27 +1,41 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router'
-import { ErrorNote, PageHeader, Segmented, Spinner } from '../../components/ui'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import { ErrorNote, PageHeader, Spinner } from '../../components/ui'
 import {
+  processRecurringNow,
   useCategories,
   useDeleteEntry,
   useEntry,
   useMembers,
+  usePendingRecurring,
   useSaveEntry,
+  useSaveTemplate,
+  useTemplates,
+  useUpdatePending,
   type Category,
   type Entry,
+  type PendingRecurring,
   type Profile,
+  type Template,
 } from '../../data/queries'
 import { useMonthRatios } from '../../data/ratios'
-import type { EntryKind, SplitType } from '../../domain/balance'
-import { formatMonth, todayISO } from '../../domain/dates'
-import { centsToInput, formatCents, parseEuros } from '../../domain/money'
+import { formatDay, formatMonth, todayISO } from '../../domain/dates'
 import { formatShare } from '../../domain/ratio'
+import { ScheduleFields } from '../recurring/ScheduleFields'
+import { defaultSchedule, parseEvery, type ScheduleDraft } from '../recurring/schedule'
+import { draftFrom, validateDraft, type EntryDraft } from './draft'
+import { EntryFields } from './EntryFields'
 
+/** /add, /add?pending=<reminder id>, /entry/:id */
 export function EntryFormPage() {
   const { id } = useParams()
+  const [params] = useSearchParams()
+  const pendingId = params.get('pending')
   const existing = useEntry(id)
   const { me, partner } = useMembers()
   const { data: categories } = useCategories()
+  const pending = usePendingRecurring()
+  const templates = useTemplates()
 
   if (!me || !categories || (id && existing.isLoading)) return <Spinner />
   if (id && !existing.data) {
@@ -32,18 +46,37 @@ export function EntryFormPage() {
       </>
     )
   }
-  return <EntryForm key={id ?? 'new'} entry={existing.data} me={me} partner={partner} categories={categories} />
+  let reminder: { pending: PendingRecurring; template: Template } | undefined
+  if (pendingId) {
+    if (pending.isLoading || templates.isLoading) return <Spinner />
+    const p = pending.data?.find((x) => x.id === pendingId)
+    const t = p && templates.data?.find((x) => x.id === p.template_id)
+    if (p && t) reminder = { pending: p, template: t }
+  }
+  return (
+    <EntryForm
+      key={id ?? pendingId ?? 'new'}
+      entry={existing.data}
+      reminder={reminder}
+      me={me}
+      partner={partner}
+      categories={categories}
+      template={existing.data?.recurring_template_id ? templates.data?.find((t) => t.id === existing.data!.recurring_template_id) : undefined}
+    />
+  )
 }
-
-type ShareMode = 'percent' | 'amount'
 
 function EntryForm({
   entry,
+  reminder,
+  template,
   me,
   partner,
   categories,
 }: {
   entry: Entry | undefined
+  reminder: { pending: PendingRecurring; template: Template } | undefined
+  template: Template | undefined
   me: Profile
   partner: Profile | null
   categories: Category[]
@@ -51,88 +84,102 @@ function EntryForm({
   const navigate = useNavigate()
   const location = useLocation()
   const save = useSaveEntry()
+  const saveTemplate = useSaveTemplate()
+  const updatePending = useUpdatePending()
   const remove = useDeleteEntry()
   const ratios = useMonthRatios()
 
-  const [kind, setKind] = useState<EntryKind>(entry?.kind ?? 'expense')
-  const [amount, setAmount] = useState(entry ? centsToInput(entry.amount_cents) : '')
-  const [categoryId, setCategoryId] = useState<string | null>(entry?.category_id ?? null)
-  const [payerId, setPayerId] = useState(entry?.payer_id ?? me.id)
-  const [split, setSplit] = useState<SplitType>(entry?.split_type ?? 'shared')
-  const [shareMode, setShareMode] = useState<ShareMode>('amount')
-  const [payerShare, setPayerShare] = useState(
-    entry?.payer_share_cents != null ? centsToInput(entry.payer_share_cents) : '',
+  const [draft, setDraft] = useState<EntryDraft>(() =>
+    reminder
+      ? {
+          ...draftFrom(reminder.template, { payerId: me.id, date: reminder.pending.due_date }),
+          amount: (reminder.pending.suggested_amount_cents / 100).toFixed(2),
+        }
+      : draftFrom(entry, { payerId: me.id, date: entry?.date ?? todayISO() }),
   )
-  const [date, setDate] = useState(entry?.date ?? todayISO())
-  const [note, setNote] = useState(entry?.note ?? '')
+  const [repeat, setRepeat] = useState(false)
+  const [schedule, setSchedule] = useState<ScheduleDraft>(defaultSchedule)
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const change = (patch: Partial<EntryDraft>) => setDraft((d) => ({ ...d, ...patch }))
 
-  const amountCents = parseEuros(amount)
-  const payer = payerId === me.id ? me : partner
-  const other = payerId === me.id ? partner : me
-  const payerName = payerId === me.id ? 'You' : (partner?.display_name ?? 'Partner')
-  const otherName = payerId === me.id ? (partner?.display_name ?? 'partner') : 'you'
-  const visibleCategories = categories.filter((c) => !c.archived || c.id === categoryId)
-  const monthRatio = ratios.ratioFor(date.slice(0, 7))
+  const payerName = draft.payerId === me.id ? 'You' : (partner?.display_name ?? 'Partner')
+  const monthRatio = ratios.ratioFor(draft.date.slice(0, 7))
   // Shared entries of a closed month are locked (the database enforces it too).
   const originalLocked = !!entry && entry.split_type !== 'personal' && ratios.ratioFor(entry.date.slice(0, 7)).closed
-  const locked = originalLocked || (split !== 'personal' && monthRatio.closed)
-
-  function customPayerShareCents(): number | null {
-    if (amountCents == null) return null
-    if (shareMode === 'amount') return parseEuros(payerShare)
-    const pct = Number(payerShare.replace(',', '.'))
-    if (!Number.isFinite(pct) || pct < 0 || pct > 100 || payerShare.trim() === '') return null
-    return Math.round((amountCents * pct) / 100)
-  }
+  const locked = originalLocked || (draft.split !== 'personal' && monthRatio.closed)
 
   function goBack() {
     if (location.key !== 'default') navigate(-1)
     else navigate('/')
   }
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!amountCents) return setError('Enter an amount')
-    let payer_share_cents: number | null = null
-    if (split === 'custom') {
-      payer_share_cents = customPayerShareCents()
-      if (payer_share_cents == null || payer_share_cents > amountCents) {
-        return setError(`${payerName}'s part must be between 0 and ${formatCents(amountCents)}`)
+    const result = validateDraft(draft, payerName)
+    if (!result.ok) return setError(result.error)
+    const every = parseEvery(schedule.every)
+    if (repeat && !every) return setError('“Every” must be a whole number between 1 and 52')
+
+    setBusy(true)
+    try {
+      let recurring_template_id = entry?.recurring_template_id ?? reminder?.template.id ?? null
+      if (repeat && !entry && !reminder) {
+        // The entry being added is the first occurrence of the new schedule.
+        recurring_template_id = crypto.randomUUID()
+        await saveTemplate.mutateAsync({
+          id: recurring_template_id,
+          household_id: me.household_id!,
+          ...result.value,
+          frequency: schedule.frequency,
+          every: every!,
+          mode: schedule.mode,
+          start_date: draft.date,
+          end_date: schedule.endDate || null,
+          occurrences: 1,
+        })
       }
-    }
-    save.mutate(
-      {
-        id: entry?.id ?? crypto.randomUUID(),
+      const entryId = entry?.id ?? crypto.randomUUID()
+      await save.mutateAsync({
+        id: entryId,
         household_id: me.household_id!,
-        kind,
-        amount_cents: amountCents,
-        category_id: categoryId,
-        payer_id: payerId,
-        split_type: split,
-        payer_share_cents,
-        date,
-        note: note.trim(),
-      },
-      { onSuccess: goBack },
-    )
+        ...result.value,
+        date: draft.date,
+        recurring_template_id,
+      })
+      if (reminder) {
+        await updatePending.mutateAsync({ id: reminder.pending.id, status: 'done', entry_id: entryId })
+        // Next reminder suggests the amount just confirmed.
+        if (result.value.amount_cents !== reminder.template.amount_cents) {
+          const { next_due: _next, ...t } = reminder.template
+          await saveTemplate.mutateAsync({ ...t, amount_cents: result.value.amount_cents })
+        }
+      }
+      if (repeat) await processRecurringNow().catch(() => {})
+      goBack()
+    } catch (err) {
+      setError(err && typeof err === 'object' && 'message' in err ? String(err.message) : String(err))
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const splitOptions: { value: SplitType; label: string }[] = [
-    { value: 'shared', label: 'Shared' },
-    { value: 'custom', label: 'Custom' },
-    ...(other ? [{ value: 'for_other' as const, label: `For ${otherName}` }] : []),
-    ...(payerId === me.id ? [{ value: 'personal' as const, label: '🔒 Mine' }] : []),
-  ]
+  const title = entry
+    ? 'Edit'
+    : reminder
+      ? `Confirm: ${reminder.template.note || 'recurring expense'}`
+      : draft.kind === 'refund'
+        ? 'New refund'
+        : 'New expense'
 
   return (
     <form onSubmit={submit}>
       <PageHeader
-        title={entry ? 'Edit' : kind === 'refund' ? 'New refund' : 'New expense'}
+        title={title}
         back="/"
         action={
-          <button className="btn-primary px-5 py-2" disabled={save.isPending || locked}>
+          <button className="btn-primary px-5 py-2" disabled={busy || locked}>
             Save
           </button>
         }
@@ -141,125 +188,76 @@ function EntryForm({
       <div className="space-y-5">
         {locked && (
           <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-            🔒 {formatMonthShort(originalLocked ? entry!.date : date)} is closed. Reopen it from the Balance tab to change
-            shared entries.
+            🔒 {formatMonth((originalLocked ? entry!.date : draft.date).slice(0, 7))} is closed. Reopen it from the
+            Balance tab to change shared entries.
           </p>
         )}
-        <Segmented
-          value={kind}
-          onChange={setKind}
-          options={[
-            { value: 'expense', label: '💸 Expense' },
-            { value: 'refund', label: '↩️ Refund / money in' },
-          ]}
+        {reminder && (
+          <p className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-700 dark:bg-brand-600/20 dark:text-brand-100">
+            🔔 Due {formatDay(reminder.pending.due_date)}. Check the amount on the bill, then save.
+          </p>
+        )}
+        {template && (
+          <Link
+            to={`/recurring/${template.id}`}
+            className="block rounded-xl bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800"
+          >
+            🔁 Part of a recurring expense — edit the schedule ›
+          </Link>
+        )}
+
+        <EntryFields
+          draft={draft}
+          onChange={change}
+          me={me}
+          partner={partner}
+          categories={categories}
+          autoFocus={!entry}
+          sharedHint={
+            partner
+              ? `Split with this month’s ratio: you ${formatShare(monthRatio.shareMe)} · ${partner.display_name} ${formatShare(1 - monthRatio.shareMe)}${monthRatio.estimated && !monthRatio.closed ? ' (estimate, final when the month is closed)' : ''}.`
+              : 'Split with the household ratio.'
+          }
+          extra={
+            !entry && !reminder ? (
+              <div>
+                <label className="flex items-center justify-between">
+                  <span className="font-medium">🔁 Repeat</span>
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 accent-brand-600"
+                    checked={repeat}
+                    onChange={(e) => setRepeat(e.target.checked)}
+                    aria-label="Repeat"
+                  />
+                </label>
+                {repeat && (
+                  <div className="mt-2">
+                    <ScheduleFields
+                      schedule={schedule}
+                      onChange={(p) => setSchedule((s) => ({ ...s, ...p }))}
+                      startDate={draft.date}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : undefined
+          }
         />
 
-        <div className="flex items-baseline justify-center gap-1">
-          <span className="text-3xl font-semibold text-slate-400">€</span>
-          <input
-            className="w-48 bg-transparent text-center text-5xl font-bold tabular-nums outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700"
-            inputMode="decimal"
-            placeholder="0.00"
-            autoFocus={!entry}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            aria-label="Amount"
-          />
-        </div>
-
-        <div className="grid grid-cols-4 gap-2">
-          {visibleCategories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setCategoryId(c.id === categoryId ? null : c.id)}
-              className={`flex flex-col items-center gap-1 rounded-xl p-2 text-xs transition ${
-                c.id === categoryId
-                  ? 'bg-brand-50 ring-2 ring-brand-500 dark:bg-brand-600/20'
-                  : 'bg-white ring-1 ring-slate-900/5 dark:bg-slate-900 dark:ring-white/10'
-              }`}
-            >
-              <span className="text-2xl">{c.emoji}</span>
-              <span className="w-full truncate">{c.name}</span>
-            </button>
-          ))}
-        </div>
-
-        {partner && (
-          <div>
-            <span className="label">{kind === 'refund' ? 'Received by' : 'Paid by'}</span>
-            <Segmented
-              value={payerId}
-              onChange={(v) => {
-                setPayerId(v)
-                if (v !== me.id && split === 'personal') setSplit('shared')
-              }}
-              options={[
-                { value: me.id, label: `${me.emoji} You` },
-                { value: partner.id, label: `${partner.emoji} ${partner.display_name}` },
-              ]}
-            />
-          </div>
-        )}
-
-        <div>
-          <span className="label">Split</span>
-          <Segmented value={split} onChange={setSplit} options={splitOptions} />
-          <p className="muted mt-1.5 text-xs">
-            {split === 'shared' &&
-              (partner
-                ? `Split with this month’s ratio: you ${formatShare(monthRatio.shareMe)} · ${partner.display_name} ${formatShare(1 - monthRatio.shareMe)}${monthRatio.estimated && !monthRatio.closed ? ' (estimate, final when the month is closed)' : ''}.`
-                : 'Split with the household ratio.')}
-            {split === 'custom' && `Set how much of it ${payerName === 'You' ? 'you' : payerName} bear${payerName === 'You' ? '' : 's'}.`}
-            {split === 'for_other' && `100% for ${otherName}.`}
-            {split === 'personal' && 'Only you can see it. Not counted in the balance.'}
-          </p>
-          {split === 'custom' && (
-            <div className="mt-2 flex gap-2">
-              <input
-                className="input flex-1"
-                inputMode="decimal"
-                placeholder={shareMode === 'amount' ? `${payer?.display_name ?? ''} part in €` : `${payer?.display_name ?? ''} part in %`}
-                value={payerShare}
-                onChange={(e) => setPayerShare(e.target.value)}
-              />
-              <div className="w-28">
-                <Segmented
-                  value={shareMode}
-                  onChange={(m) => {
-                    setShareMode(m)
-                    setPayerShare('')
-                  }}
-                  options={[
-                    { value: 'amount', label: '€' },
-                    { value: 'percent', label: '%' },
-                  ]}
-                />
-              </div>
-            </div>
-          )}
-          {split === 'custom' && amountCents != null && customPayerShareCents() != null && (
-            <p className="muted mt-1 text-xs">
-              {payerName}: {formatCents(customPayerShareCents()!)} · {other?.id === me.id ? 'You' : (other?.display_name ?? 'Partner')}:{' '}
-              {formatCents(Math.max(0, amountCents - customPayerShareCents()!))}
-            </p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label" htmlFor="date">Date</label>
-            <input id="date" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="note">Note</label>
-            <input id="note" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" />
-          </div>
-        </div>
-
         {error && <ErrorNote error={error} />}
-        <ErrorNote error={save.error ?? remove.error} />
+        <ErrorNote error={remove.error} />
 
+        {reminder && (
+          <button
+            type="button"
+            className="btn-secondary w-full"
+            disabled={updatePending.isPending}
+            onClick={() => updatePending.mutate({ id: reminder.pending.id, status: 'skipped' }, { onSuccess: goBack })}
+          >
+            Skip this one
+          </button>
+        )}
         {entry && (
           <button
             type="button"
@@ -276,5 +274,3 @@ function EntryForm({
     </form>
   )
 }
-
-const formatMonthShort = (date: string) => formatMonth(date.slice(0, 7))

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { ErrorNote, PageHeader, Spinner } from '../../components/ui'
 import {
   signOut,
@@ -30,6 +31,14 @@ export function SettingsPage() {
         <ProfileCard key={me.id + me.display_name + me.emoji} me={me} email={session?.user.email} />
         <HouseholdCard key={household.id + household.name} household={household} partner={partner} />
         <SplitCard household={household} me={me} partner={partner} />
+        <Link to="/recurring" className="card flex items-center gap-3">
+          <span className="text-2xl">🔁</span>
+          <span className="flex-1">
+            <span className="block font-semibold">Recurring expenses</span>
+            <span className="muted block text-sm">Rent, subscriptions, bills</span>
+          </span>
+          <span className="muted">›</span>
+        </Link>
         <CategoriesCard householdId={household.id} />
         <button className="btn-secondary w-full" onClick={signOut}>Sign out</button>
       </div>

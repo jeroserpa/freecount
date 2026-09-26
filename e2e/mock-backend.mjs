@@ -54,7 +54,8 @@ function applyOrder(rows, order) {
 /**
  * @param context Playwright BrowserContext
  * @param db      { tableName: rows[] } — mutated in place
- * @param opts    { userId, email, rpc: { name: (args, db) => result } }
+ * @param opts    { userId, email, rpc: { name: (args, db) => result }, onWrite: (table, row) => void }
+ *                 onWrite mimics triggers (called after every insert/update of a row).
  */
 export async function installMockBackend(context, db, opts) {
   const log = []
@@ -114,12 +115,16 @@ export async function installMockBackend(context, db, opts) {
         if (i >= 0 && upsert) db[table][i] = { ...db[table][i], ...item }
         else if (i >= 0) return route.fulfill({ status: 409, json: { message: 'duplicate key' } })
         else db[table].push(row)
+        opts.onWrite?.(table, i >= 0 ? db[table][i] : row)
       }
       return route.fulfill({ status: 201, body: '' })
     }
     if (method === 'PATCH') {
       const body = JSON.parse(req.postData())
-      matching.forEach((r) => Object.assign(r, body))
+      matching.forEach((r) => {
+        Object.assign(r, body)
+        opts.onWrite?.(table, r)
+      })
       return route.fulfill({ status: 204, body: '' })
     }
     if (method === 'DELETE') {
