@@ -81,8 +81,9 @@ periods           household_id, month (1st of month) — a row means the month i
 
 settlements       id, household_id, from_id, to_id, amount_cents, date, note
 
-yearly_adjustments id, household_id, year, income_a_cents, income_b_cents, ratio_a,
-                  adjustment_cents (signed, + means B owes A), created_at
+yearly_adjustments household_id, year, profile_a_id, profile_b_id, income_a_cents, income_b_cents,
+                  share_a (yearly ratio), adjustment_cents (signed, > 0 means B owes A), created_by, created_at
+                  PK (household_id, year); added to the balance
 ```
 
 ### Onboarding
@@ -171,9 +172,13 @@ All in `src/data/offline.ts`:
 
 ## 9. Milestones
 
-1. **M1 – Foundations**: project scaffold, Supabase schema + RLS, auth for 2 users, categories CRUD, quick add, ledger, 50/50 live balance.
-2. **M2 – Splits & balance**: all split types, refunds, periods, monthly income, income ratio, close-month flow, settlements.
-3. **M3 – Recurring**: templates, auto + reminder modes, cron job.
-4. **M4 – Analytics**: charts, budgets, export CSV.
-5. **M5 – PWA polish**: offline queue, install prompts, realtime, performance.
-6. **M6 – Extras**: yearly adjustment, push notifications.
+All shipped:
+1. **M1 – Foundations**: scaffold, schema + RLS, auth for 2 users, categories, quick add, ledger, balance.
+2. **M2 – Splits & balance**: split types, refunds, months, monthly income, income ratio, close month, settlements.
+3. **M3 – Recurring**: templates, auto + reminder modes, daily cron + on-start generation.
+4. **M4 – Analytics**: Stats tab, budgets, forecast, CSV export, ledger search.
+5. **M5 – Offline**: persisted cache, queued entry changes, sync banner.
+6. **M6 – Yearly adjustment**: re-split a year's shared entries with yearly incomes.
+
+Later / ideas: push notifications (needs a server-side sender, e.g. a Supabase Edge Function with Web Push),
+receipt photos, configurable period length.

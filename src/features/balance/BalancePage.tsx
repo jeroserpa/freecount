@@ -1,7 +1,13 @@
 import { Link } from 'react-router'
 import { PageHeader, Spinner } from '../../components/ui'
 import { useHouseholdBalance } from '../../data/balance'
-import { useBalanceEntries, useDeleteSettlement, useMembers, useSettlements } from '../../data/queries'
+import {
+  useBalanceEntries,
+  useDeleteSettlement,
+  useMembers,
+  useSettlements,
+  useYearlyAdjustments,
+} from '../../data/queries'
 import { useMonthRatios } from '../../data/ratios'
 import { monthSummary } from '../../domain/balance'
 import { currentMonth, formatDay, formatMonth } from '../../domain/dates'
@@ -16,6 +22,7 @@ export function BalancePage() {
   const settlements = useSettlements()
   const ratios = useMonthRatios()
   const deleteSettlement = useDeleteSettlement()
+  const adjustments = useYearlyAdjustments()
 
   if (!me) return <Spinner />
   if (!partner) {
@@ -72,6 +79,27 @@ export function BalancePage() {
           })}
         </div>
       )}
+
+      <h2 className="mb-2 mt-6 px-1 font-semibold">Yearly adjustments</h2>
+      <div className="card divide-y divide-slate-100 py-1 dark:divide-slate-800">
+        {[...new Set([Number(now.slice(0, 4)) - 1, ...(adjustments.data ?? []).map((a) => a.year)])]
+          .sort((a, b) => b - a)
+          .map((y) => {
+            const adj = adjustments.data?.find((a) => a.year === y)
+            const forMe = adj ? (adj.profile_a_id === me.id ? adj.adjustment_cents : -adj.adjustment_cents) : null
+            return (
+              <Link key={y} to={`/balance/year/${y}`} className="flex items-center gap-3 py-3">
+                <span className="text-xl">📆</span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{y}</p>
+                  <p className="muted text-xs">{adj ? 'Applied' : 'Re-split the year with yearly incomes'}</p>
+                </div>
+                {forMe != null && <MonthResult net={forMe} />}
+                <span className="muted">›</span>
+              </Link>
+            )
+          })}
+      </div>
 
       <h2 className="mb-2 mt-6 px-1 font-semibold">Transfers</h2>
       {(settlements.data ?? []).length === 0 ? (

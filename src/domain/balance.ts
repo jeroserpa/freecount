@@ -149,3 +149,20 @@ export function monthSummary(userA: string, userB: string, entries: BalanceEntry
   s.net = s.paidA - s.costA
   return s
 }
+
+/**
+ * Yearly income adjustment (SPEC §5.6): what the year's entries give with the yearly ratio, minus what they gave
+ * with the monthly ratios. Positive: B owes A this much more. Only "shared" entries change; custom/for-other
+ * entries cancel out.
+ */
+export function yearlyAdjustment(
+  userA: string,
+  userB: string,
+  yearEntries: DatedBalanceEntry[],
+  shareAForMonth: (month: string) => number,
+  yearlyShareA: number,
+): number {
+  const withMonthly = householdBalance(userA, userB, yearEntries, [], shareAForMonth)
+  const withYearly = householdBalance(userA, userB, yearEntries, [], () => yearlyShareA)
+  return withYearly - withMonthly
+}

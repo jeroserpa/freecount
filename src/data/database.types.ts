@@ -255,6 +255,34 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['settlements']['Insert']>
         Relationships: []
       }
+      yearly_adjustments: {
+        Row: {
+          adjustment_cents: number
+          created_at: string
+          created_by: string
+          household_id: string
+          income_a_cents: number
+          income_b_cents: number
+          profile_a_id: string
+          profile_b_id: string
+          share_a: number
+          year: number
+        }
+        Insert: {
+          adjustment_cents: number
+          created_at?: string
+          created_by?: string
+          household_id: string
+          income_a_cents: number
+          income_b_cents: number
+          profile_a_id: string
+          profile_b_id: string
+          share_a: number
+          year: number
+        }
+        Update: Partial<Database['public']['Tables']['yearly_adjustments']['Insert']>
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {

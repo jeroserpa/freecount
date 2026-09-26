@@ -289,10 +289,37 @@ try {
   const synced = db.entries.filter((e) => e.note === 'Offline croissant')
   check('synced once after reconnecting', JSON.stringify(synced.map((e) => e.amount_cents)), JSON.stringify([1234]))
 
+  // Yearly adjustment: equal yearly incomes → 50/50 for the whole year; the balance moves by the stored amount
+  const toCents = (t) => {
+    const m = t.match(/(Ana owes you|You owe Ana) €([\d,]+\.\d\d)/)
+    if (!m) return /All square/.test(t) ? 0 : NaN
+    const v = Math.round(Number(m[2].replace(/,/g, '')) * 100)
+    return m[1] === 'Ana owes you' ? v : -v
+  }
+  await page.goto(BASE + '/')
+  await waitForText(page, /Balance/)
+  await page.waitForTimeout(500)
+  const beforeYear = toCents(await balanceText(page))
+  const year = CUR.slice(0, 4)
+  await page.goto(`${BASE}/balance/year/${year}`)
+  await waitForText(page, /Yearly adjustment/)
+  await page.getByLabel('Your net income for the year').fill('30000')
+  await page.getByLabel('Ana’s net income for the year').fill('30000')
+  await waitForText(page, /With the yearly ratio/)
+  await page.screenshot({ path: SHOTS + '15-yearly.png', fullPage: true })
+  await page.getByRole('button', { name: 'Apply adjustment' }).click()
+  await waitForText(page, /Currently applied/)
+  const adj = db.yearly_adjustments?.[0]
+  check('adjustment stored', JSON.stringify(adj && [adj.year, adj.share_a, adj.profile_a_id === ME]), JSON.stringify([Number(year), 0.5, true]))
+  await page.goto(BASE + '/')
+  await waitForText(page, /Balance/)
+  await page.waitForTimeout(500)
+  check('balance includes the adjustment', toCents(await balanceText(page)), beforeYear + adj.adjustment_cents)
+
   // Dark mode home
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto(BASE + '/')
-  await waitForText(page, /Ana owes you/)
+  await waitForText(page, /Balance/)
   await page.screenshot({ path: SHOTS + '08-home-dark.png', fullPage: true })
 } catch (e) {
   failures++

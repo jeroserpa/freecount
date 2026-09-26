@@ -139,6 +139,7 @@ Monthly incomes fluctuate (bonuses, 13th month, etc.). Optionally, once a year:
 2. The app recomputes the whole year's shared spend with the **yearly ratio**, compares with what the
    monthly ratios produced, and shows the difference: *"With the yearly ratio, she owes you €184 more."*
 3. Confirming creates an **adjustment** line added to the balance (settled like any other balance).
+4. One adjustment per year; it can be updated (e.g. after closing the remaining months) or removed.
 
 Only "Shared" entries are affected by ratios; Custom and "For the other" entries are never re-divided.
 
