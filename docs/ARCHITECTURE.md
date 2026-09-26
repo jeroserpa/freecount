@@ -48,7 +48,7 @@ Note: Supabase free projects pause after ~1 week without activity; daily use kee
 All money is `bigint` **cents**. All ids are `uuid`. All tables carry `household_id` for RLS.
 
 ```
-households        id, name, ratio_mode ('equal'|'income'|'fixed'), fixed_ratio_a (numeric, nullable),
+households        id, name, invite_code, ratio_mode ('equal'|'income'|'fixed'), fixed_ratio_a (numeric, nullable),
                   created_at
 
 profiles          id (= auth.users.id), household_id, display_name, emoji,
@@ -60,10 +60,8 @@ categories        id, household_id, name, emoji, color, sort_order, monthly_budg
 entries           id, household_id, kind ('expense'|'refund'), amount_cents (>0),
                   date, payer_id (→ profiles; for a refund = who received the money), category_id, note,
                   split_type ('personal'|'shared'|'custom'|'for_other'),
-                  custom_split_mode ('percent'|'amount', nullable),
-                  custom_share_a (numeric/cents, nullable),   -- share of the household's user A
-                  recurring_template_id (nullable), created_by, created_at, updated_at,
-                  deleted_at (soft delete, for sync)
+                  payer_share_cents (custom only: part borne by the payer; the UI accepts € or %),
+                  recurring_template_id (later), created_by, created_at, updated_at
 
 recurring_templates id, household_id, amount_cents, kind, category_id, payer_id, split_type,
                   custom split fields, note, schedule_rule (e.g. 'monthly:1', 'yearly:03-15'),
@@ -83,6 +81,11 @@ settlements       id, household_id, from_id, to_id, amount_cents, date, note, pe
 yearly_adjustments id, household_id, year, income_a_cents, income_b_cents, ratio_a,
                   adjustment_cents (signed, + means B owes A), created_at
 ```
+
+### Onboarding
+Sign-up creates a `profiles` row (trigger). The first person calls the `create_household` RPC (which also seeds
+default categories); the second calls `join_household(invite_code)`. A household holds at most 2 members.
+RLS helper functions live in a non-exposed `private` schema.
 
 ### Row Level Security
 - Every table: a row is visible only if `household_id` = the caller's household.
