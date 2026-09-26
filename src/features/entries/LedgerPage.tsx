@@ -117,7 +117,7 @@ export function LedgerPage() {
               className={`shrink-0 rounded-full px-3 py-1 text-sm ${
                 c.id === categoryFilter
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white ring-1 ring-slate-900/10 dark:bg-slate-900 dark:ring-white/10'
+                  : 'bg-white ring-1 ring-stone-900/10 dark:bg-stone-900 dark:ring-white/10'
               }`}
             >
               {c.emoji} {c.name}
@@ -148,7 +148,7 @@ export function LedgerPage() {
         sortedDays.map((day) => (
           <section key={day} className="mt-4">
             <h3 className="muted mb-1 px-1 text-xs font-semibold uppercase tracking-wide">{formatDay(day)}</h3>
-            <div className="card divide-y divide-slate-100 py-1 dark:divide-slate-800">
+            <div className="card divide-y divide-stone-100 py-1 dark:divide-stone-800">
               {days.get(day)!.map((item) =>
                 item.type === 'entry' ? (
                   <EntryRow
@@ -166,7 +166,7 @@ export function LedgerPage() {
                       if (confirm('Delete this settlement?')) deleteSettlement.mutate(item.settlement.id)
                     }}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl dark:bg-slate-800">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xl dark:bg-stone-800">
                       ⇄
                     </span>
                     <div className="min-w-0 flex-1">
@@ -175,7 +175,7 @@ export function LedgerPage() {
                       </p>
                       <p className="muted truncate text-xs">Settlement{item.settlement.note && ` · ${item.settlement.note}`}</p>
                     </div>
-                    <span className="font-semibold tabular-nums text-slate-500">{formatCents(item.settlement.amount_cents)}</span>
+                    <span className="font-semibold tabular-nums text-stone-500">{formatCents(item.settlement.amount_cents)}</span>
                   </button>
                 ),
               )}

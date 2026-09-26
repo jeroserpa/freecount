@@ -46,7 +46,7 @@ export function CategoryEditor({
   }
 
   return (
-    <div className="my-2 space-y-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+    <div className="my-2 space-y-3 rounded-xl bg-stone-50 p-3 dark:bg-stone-800/60">
       <div className="flex gap-2">
         <input
           className="input w-16 text-center text-xl"
@@ -81,7 +81,7 @@ export function CategoryEditor({
             key={c}
             type="button"
             onClick={() => setColor(c)}
-            className={`h-7 w-7 rounded-full ${c === color ? 'ring-2 ring-slate-900 ring-offset-2 dark:ring-white dark:ring-offset-slate-800' : ''}`}
+            className={`h-7 w-7 rounded-full ${c === color ? 'ring-2 ring-stone-900 ring-offset-2 dark:ring-white dark:ring-offset-stone-800' : ''}`}
             style={{ backgroundColor: c }}
             aria-label={c}
           />

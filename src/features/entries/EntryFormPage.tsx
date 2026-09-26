@@ -214,7 +214,7 @@ function EntryForm({
         {template && (
           <Link
             to={`/recurring/${template.id}`}
-            className="block rounded-xl bg-slate-100 px-3 py-2 text-sm dark:bg-slate-800"
+            className="block rounded-xl bg-stone-100 px-3 py-2 text-sm dark:bg-stone-800"
           >
             🔁 Part of a recurring expense — edit the schedule ›
           </Link>

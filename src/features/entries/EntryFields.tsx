@@ -59,9 +59,9 @@ export function EntryFields({
       />
 
       <div className="flex items-baseline justify-center gap-1">
-        <span className="text-3xl font-semibold text-slate-400">€</span>
+        <span className="text-3xl font-semibold text-stone-400">€</span>
         <input
-          className="w-48 bg-transparent text-center text-5xl font-bold tabular-nums outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700"
+          className="w-48 bg-transparent text-center text-5xl font-bold tabular-nums outline-none placeholder:text-stone-300 dark:placeholder:text-stone-700"
           inputMode="decimal"
           placeholder="0.00"
           autoFocus={autoFocus}
@@ -80,7 +80,7 @@ export function EntryFields({
             className={`flex flex-col items-center gap-1 rounded-xl p-2 text-xs transition ${
               c.id === draft.categoryId
                 ? 'bg-brand-50 ring-2 ring-brand-500 dark:bg-brand-600/20'
-                : 'bg-white ring-1 ring-slate-900/5 dark:bg-slate-900 dark:ring-white/10'
+                : 'bg-white ring-1 ring-stone-900/5 dark:bg-stone-900 dark:ring-white/10'
             }`}
           >
             <span className="text-2xl">{c.emoji}</span>

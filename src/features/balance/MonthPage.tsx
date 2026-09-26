@@ -63,7 +63,7 @@ export function MonthPage() {
         <span
           className={`rounded-full px-3 py-1 text-sm font-medium ${
             r.closed
-              ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              ? 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
               : 'bg-brand-50 text-brand-700 dark:bg-brand-600/20 dark:text-brand-100'
           }`}
         >
@@ -121,14 +121,14 @@ export function MonthPage() {
               <td className="py-1 text-right">{formatCents(s.paidB)}</td>
               <td className="py-1 text-right">{formatCents(s.costB)}</td>
             </tr>
-            <tr className="border-t border-slate-100 font-semibold dark:border-slate-800">
+            <tr className="border-t border-stone-100 font-semibold dark:border-stone-800">
               <td className="pt-2">Shared total</td>
               <td className="pt-2 text-right">{formatCents(s.sharedTotal)}</td>
               <td className="pt-2 text-right">{formatCents(s.costA + s.costB)}</td>
             </tr>
           </tbody>
         </table>
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-stone-50 px-3 py-2 dark:bg-stone-800/60">
           <span className="text-sm">
             {s.net === 0
               ? 'This month is even.'
@@ -138,7 +138,7 @@ export function MonthPage() {
           </span>
           <MonthResult net={s.net} />
         </div>
-        <Link to={`/ledger?month=${m}&scope=shared`} className="mt-3 block text-sm font-medium text-brand-600">
+        <Link to={`/ledger?month=${m}&scope=shared`} className="mt-3 block text-sm font-medium text-brand-600 dark:text-brand-400">
           See the {monthEntries.length} shared entries ›
         </Link>
       </section>
@@ -174,7 +174,7 @@ export function MonthPage() {
 function RatioBar({ shareMe, partnerName }: { shareMe: number; partnerName: string }) {
   return (
     <div>
-      <div className="flex h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+      <div className="flex h-3 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-700">
         <div className="bg-brand-500" style={{ width: `${shareMe * 100}%` }} />
       </div>
       <div className="mt-1 flex justify-between text-sm">

@@ -27,7 +27,7 @@ Status: **draft v1** — to be agreed before any code is written.
 
 ## 2. Users & privacy
 
-- Exactly **two users** (a "household"). Sign-up is closed; the two accounts are created once.
+- Exactly **two users** (a "household"). Once both accounts exist, the database refuses any new sign-up.
 - **Personal entries are private**: only their owner can see them (enforced in the database, not just hidden in the UI).
 - **Shared entries** (anything that affects the balance) are visible to both.
 - **Incomes are visible to both** — unavoidable, since the split ratio reveals them anyway.
@@ -183,7 +183,8 @@ One filter row scopes the whole page: **scope** (*My costs* = my share of shared
   "over budget" warning in the Shared scope.
 - **Who paid** the shared spending of the month.
 - **My share** of shared expenses per month (ratio history).
-- **Export**: CSV of the range from Stats, or of everything from Settings (UTF-8 with BOM, spreadsheet-safe).
+- **Export**: CSV of the range from Stats, or of everything from Settings (UTF-8 with BOM, spreadsheet-safe);
+  plus a full JSON backup of everything visible (categories, months, incomes, transfers, recurring, adjustments).
 
 ---
 

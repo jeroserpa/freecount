@@ -14,7 +14,7 @@ export function ScheduleFields({
   const every = parseEvery(schedule.every)
   const unit = { weekly: 'week', monthly: 'month', yearly: 'year' }[schedule.frequency]
   return (
-    <div className="space-y-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+    <div className="space-y-3 rounded-xl bg-stone-50 p-3 dark:bg-stone-800/60">
       <Segmented
         value={schedule.frequency}
         onChange={(frequency) => onChange({ frequency })}

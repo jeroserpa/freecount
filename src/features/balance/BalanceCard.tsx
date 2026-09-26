@@ -15,7 +15,7 @@ export function BalanceCard({
   showSettle?: boolean
 }) {
   return (
-    <section className="card bg-gradient-to-br from-brand-600 to-brand-700 text-white ring-0 dark:from-brand-700 dark:to-emerald-900">
+    <section className="card bg-gradient-to-br from-brand-600 to-brand-700 text-white ring-0 dark:from-brand-700 dark:to-brand-900">
       <p className="text-sm text-white/80">Balance{estimated && !loading && net !== 0 ? ' · estimate' : ''}</p>
       {loading ? (
         <p className="py-2 text-2xl font-bold">…</p>

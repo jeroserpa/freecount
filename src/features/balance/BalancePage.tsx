@@ -58,7 +58,7 @@ export function BalancePage() {
       {!ratios.ready || entries.isLoading ? (
         <Spinner />
       ) : (
-        <div className="card divide-y divide-slate-100 py-1 dark:divide-slate-800">
+        <div className="card divide-y divide-stone-100 py-1 dark:divide-stone-800">
           {[...future.reverse(), ...months].map((m) => {
             const r = ratios.ratioFor(m)
             const s = monthSummary(me.id, partner.id, byMonth.get(m) ?? [], r.shareMe)
@@ -81,7 +81,7 @@ export function BalancePage() {
       )}
 
       <h2 className="mb-2 mt-6 px-1 font-semibold">Yearly adjustments</h2>
-      <div className="card divide-y divide-slate-100 py-1 dark:divide-slate-800">
+      <div className="card divide-y divide-stone-100 py-1 dark:divide-stone-800">
         {[...new Set([Number(now.slice(0, 4)) - 1, ...(adjustments.data ?? []).map((a) => a.year)])]
           .sort((a, b) => b - a)
           .map((y) => {
@@ -105,7 +105,7 @@ export function BalancePage() {
       {(settlements.data ?? []).length === 0 ? (
         <p className="muted px-1 text-sm">No transfers recorded yet.</p>
       ) : (
-        <div className="card divide-y divide-slate-100 py-1 dark:divide-slate-800">
+        <div className="card divide-y divide-stone-100 py-1 dark:divide-stone-800">
           {(settlements.data ?? []).slice(0, 20).map((s) => (
             <button
               key={s.id}
@@ -137,7 +137,7 @@ export function BalancePage() {
 export function MonthResult({ net }: { net: number }) {
   if (net === 0) return <span className="muted text-sm">—</span>
   return (
-    <span className={`text-sm font-semibold tabular-nums ${net > 0 ? 'text-brand-600' : 'text-orange-600'}`}>
+    <span className={`text-sm font-semibold tabular-nums ${net > 0 ? 'text-brand-600 dark:text-brand-400' : 'text-orange-600'}`}>
       {net > 0 ? '+' : '−'}
       {formatCents(Math.abs(net))}
     </span>

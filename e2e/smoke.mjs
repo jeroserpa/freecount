@@ -179,6 +179,7 @@ try {
   // Headless Chromium always reports Notification.permission = 'denied', so the card shows its "blocked" guidance.
   const notif = await page.getByText(/Notifications are blocked|Turn on for this device/).first().waitFor({ timeout: 5000 }).then(() => true, () => false)
   check('notifications card reflects the browser state', notif, true)
+  check('backup export offered', await page.getByRole('button', { name: /Full backup/ }).count(), 1)
   await page.goto(BASE + '/')
   await waitForText(page, /€32\.25/)
   check('balance with fixed 70/30', await balanceText(page), /You owe Ana €32\.25/)
