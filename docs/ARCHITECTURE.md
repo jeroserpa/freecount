@@ -1,0 +1,162 @@
+# Freecount — Architecture
+
+Status: **draft v1**. See [SPEC.md](./SPEC.md) for the product requirements.
+
+## 1. Overview
+
+```
+┌────────────────────────────── Phone ──────────────────────────────┐
+│  PWA (React + TypeScript, installed on home screen)               │
+│   ├─ UI (Tailwind)                                                │
+│   ├─ Domain logic (pure TS: splits, balances, ratios) ← unit-tested│
+│   ├─ Data layer (TanStack Query, persisted to IndexedDB)          │
+│   └─ Offline mutation queue → replays when online                 │
+│  Service worker (vite-plugin-pwa): app shell cached offline       │
+└───────────────────────────────┬───────────────────────────────────┘
+                                │ HTTPS (supabase-js) + Realtime (websocket)
+┌───────────────────────────────▼───────────────────────────────────┐
+│  Supabase                                                         │
+│   ├─ Postgres: tables, SQL views for analytics                    │
+│   ├─ Row Level Security: household isolation + private entries    │
+│   ├─ Auth: email + password / magic link, sign-ups disabled       │
+│   ├─ Realtime: live updates between the two phones                │
+│   └─ pg_cron: daily job generating recurring entries/reminders    │
+└───────────────────────────────────────────────────────────────────┘
+Static hosting of the PWA: Vercel (free tier), deployed from GitHub.
+```
+
+## 2. Stack choices
+
+| Concern | Choice | Why |
+|---|---|---|
+| Language | TypeScript | Type safety across UI and domain logic |
+| UI framework | React 19 + Vite | Mature, huge ecosystem, fast builds |
+| Styling | Tailwind CSS + a small set of headless components | Quick mobile-first UI |
+| Routing | TanStack Router (or React Router) | Simple SPA routing |
+| Server state / offline | TanStack Query + IndexedDB persister | Caching, offline reads, retrying mutations |
+| PWA | vite-plugin-pwa (Workbox) | Manifest + service worker, installable |
+| Charts | ECharts (via echarts-for-react) | Rich chart types, good on mobile |
+| Backend | Supabase (Postgres, Auth, Realtime, pg_cron) | Real SQL for analytics, auth + RLS built in, free tier |
+| Hosting | Vercel | Free, automatic deploys & previews from GitHub |
+| Tests | Vitest (domain logic), Playwright (key flows) | Money logic must be tested |
+| Lint/format | ESLint + Prettier | |
+
+Note: Supabase free projects pause after ~1 week without activity; daily use keeps it awake.
+
+## 3. Data model (Postgres)
+
+All money is `bigint` **cents**. All ids are `uuid`. All tables carry `household_id` for RLS.
+
+```
+households        id, name, invite_code, ratio_mode ('equal'|'income'|'fixed'), fixed_ratio_a (numeric, nullable),
+                  created_at
+
+profiles          id (= auth.users.id), household_id, display_name, emoji,
+                  reference_monthly_income_cents
+
+categories        id, household_id, name, emoji, color, sort_order, monthly_budget_cents (nullable),
+                  archived (bool)
+
+entries           id, household_id, kind ('expense'|'refund'), amount_cents (>0),
+                  date, payer_id (→ profiles; for a refund = who received the money), category_id, note,
+                  split_type ('personal'|'shared'|'custom'|'for_other'),
+                  payer_share_cents (custom only: part borne by the payer; the UI accepts € or %),
+                  recurring_template_id (later), created_by, created_at, updated_at
+
+recurring_templates id, household_id, amount_cents, kind, category_id, payer_id, split_type,
+                  custom split fields, note, schedule_rule (e.g. 'monthly:1', 'yearly:03-15'),
+                  mode ('auto'|'reminder'), start_date, end_date, paused, next_due_date
+
+pending_recurring id, template_id, due_date, suggested_amount_cents, status ('pending'|'confirmed'|'skipped')
+
+monthly_incomes   household_id, profile_id, month (date, 1st of month), income_cents
+                  PK (profile_id, month)
+
+periods           id, household_id, month, status ('open'|'closed'),
+                  ratio_mode, ratio_a (numeric snapshot), income_a_cents, income_b_cents,
+                  ratio_estimated (bool), closed_at, closed_by
+
+settlements       id, household_id, from_id, to_id, amount_cents, date, note, period_id (nullable)
+
+yearly_adjustments id, household_id, year, income_a_cents, income_b_cents, ratio_a,
+                  adjustment_cents (signed, + means B owes A), created_at
+```
+
+### Onboarding
+Sign-up creates a `profiles` row (trigger). The first person calls the `create_household` RPC (which also seeds
+default categories); the second calls `join_household(invite_code)`. A household holds at most 2 members.
+RLS helper functions live in a non-exposed `private` schema.
+
+### Row Level Security
+- Every table: a row is visible only if `household_id` = the caller's household.
+- `entries`: additionally, `split_type = 'personal'` rows are visible/editable **only** by `payer_id = auth.uid()`.
+- `entries` in a closed period cannot be inserted/updated/deleted (checked by trigger).
+
+### Views (analytics)
+- `v_monthly_category_totals` (per user visibility enforced via `security_invoker` views over RLS'd tables).
+- `v_period_balance` — shared totals, paid-by, owed-by per period.
+Heavy aggregation lives in SQL; the balance *rules* also live in the TS domain module (see §4) and are
+cross-checked by tests.
+
+## 4. Domain logic (pure TypeScript, `src/domain/`)
+
+Kept framework-free and exhaustively unit-tested:
+
+- `shareOf(entry, ratioA) → { a: cents, b: cents }` — how much of an entry each user bears.
+  - personal → excluded
+  - shared → `ratioA` split, remainder cent to payer
+  - custom → explicit
+  - for_other → 100% the non-payer
+  - refund → same, with negated sign
+- `periodBalance(entries, settlements, ratioA)` → net amount B owes A (signed).
+- `ratioFromIncomes(incomeA, incomeB)`, with fallback to reference incomes → `{ ratioA, estimated }`.
+- `yearlyAdjustment(periods, entries, yearlyIncomes)` → signed adjustment.
+
+Balance formula for a user X over a set of non-personal entries:
+`net_X = Σ paid_by_X (expenses) − Σ received_by_X (refunds) − Σ share_X` ; `net_A = −net_B`.
+Settlements then move the net towards 0.
+
+## 5. Sync & offline strategy
+
+- Reads: TanStack Query cache persisted in IndexedDB → app opens instantly with last known data offline.
+- Writes: optimistic updates; mutations are queued (paused) while offline and replayed on reconnect.
+  Entries get client-generated UUIDs so replays are idempotent (upsert).
+- Conflicts: last-write-wins on `updated_at` (acceptable for 2 users).
+- Realtime subscription on `entries`, `settlements`, `periods` invalidates the relevant queries.
+
+## 6. Recurring generation
+
+- `pg_cron` runs a SQL function daily: for each active template with `next_due_date <= today`,
+  - `auto` → insert an entry,
+  - `reminder` → insert a `pending_recurring` row (prefilled with last confirmed amount),
+  - then advance `next_due_date`.
+- Server-side so it happens even if nobody opens the app.
+
+## 7. Project layout (planned)
+
+```
+/src
+  /domain        pure logic + tests (money, splits, balance, ratios, recurrence)
+  /data          supabase client, queries, mutations, offline persistence
+  /features      entries, quick-add, ledger, balance, analytics, settings
+  /components    shared UI
+/supabase
+  /migrations    SQL schema, RLS policies, views, cron
+  seed.sql       default categories
+/docs            SPEC.md, ARCHITECTURE.md
+```
+
+## 8. Environments & deployment
+
+- `main` → production on Vercel; PR branches → preview deploys.
+- Supabase: one production project; local development via Supabase CLI (Docker) or a separate dev project.
+- Secrets: Supabase URL + anon key as Vercel env vars (anon key is public by design; security comes from RLS).
+
+## 9. Milestones
+
+1. **M1 – Foundations**: project scaffold, Supabase schema + RLS, auth for 2 users, categories CRUD, quick add, ledger, 50/50 live balance.
+2. **M2 – Splits & balance**: all split types, refunds, periods, monthly income, income ratio, close-month flow, settlements.
+3. **M3 – Recurring**: templates, auto + reminder modes, cron job.
+4. **M4 – Analytics**: charts, budgets, export CSV.
+5. **M5 – PWA polish**: offline queue, install prompts, realtime, performance.
+6. **M6 – Extras**: yearly adjustment, push notifications.
