@@ -122,11 +122,19 @@ Settlements then move the net towards 0.
 
 ## 5. Sync & offline strategy
 
-- Reads: TanStack Query cache persisted in IndexedDB → app opens instantly with last known data offline.
-- Writes: optimistic updates; mutations are queued (paused) while offline and replayed on reconnect.
+All in `src/data/offline.ts`:
+- **Reads**: the TanStack Query cache is persisted in IndexedDB (`idb-keyval`, max age 7 days, `buster` to
+  invalidate on incompatible changes); queries run `offlineFirst`, so the app opens with the last known data.
+  The service worker (vite-plugin-pwa) precaches the app shell. Sign-out clears the persisted cache.
+- **Entry writes** (`['entries','save']`, `['entries','delete']`) have mutation defaults registered by key, so
+  paused mutations can resume after a reload. They pause while offline, share a scope (replayed in order),
+  update cached lists optimistically (`src/data/optimistic.ts`, unit-tested) and invalidate on settle.
   Entries get client-generated UUIDs so replays are idempotent (upsert).
-- Conflicts: last-write-wins on `updated_at` (acceptable for 2 users).
-- Realtime subscription on `entries`, `settlements`, `periods` invalidates the relevant queries.
+- **Other writes** use `networkMode: 'always'`: offline they fail at once with an error instead of hanging.
+- Errors of changes that were queued offline are collected and shown in the sync banner (the form that made
+  them is gone by then). The banner also shows offline state and the number of queued changes.
+- Conflicts: last-write-wins (acceptable for 2 users).
+- Realtime subscriptions on all shared tables invalidate the relevant queries.
 
 ## 6. Recurring generation
 

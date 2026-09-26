@@ -264,6 +264,31 @@ try {
   check('csv header', csv[0], 'date,type,amount_eur,category,note,paid_or_received_by,split,payer_part_eur,cost_for_me_eur,recurring')
   check('csv rows = visible entries', csv.length - 1, db.entries.length)
 
+  // Offline: add an expense → shown at once, queued, survives a reload, synced after reconnecting
+  await page.goto(BASE + '/')
+  await waitForText(page, /Latest/)
+  const countBefore = db.entries.length
+  await context.setOffline(true)
+  await waitForText(page, /Offline/)
+  await page.getByLabel('Add expense').click()
+  await page.getByLabel('Amount').fill('12.34')
+  await page.getByLabel('Note').fill('Offline croissant')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.waitForURL(BASE + '/')
+  await waitForText(page, /Offline croissant/)
+  await waitForText(page, /1 change waiting to sync/)
+  check('offline entry shown before sync', db.entries.length, countBefore)
+  await page.screenshot({ path: SHOTS + '14-offline.png', fullPage: true })
+  await page.waitForTimeout(1500) // let the cache persist to IndexedDB
+  await page.reload()
+  await waitForText(page, /Offline croissant/)
+  check('queued change survives an offline reload', true, true)
+  await context.setOffline(false)
+  await page.waitForFunction(() => navigator.onLine)
+  for (let i = 0; i < 20 && !db.entries.some((e) => e.note === 'Offline croissant'); i++) await page.waitForTimeout(250)
+  const synced = db.entries.filter((e) => e.note === 'Offline croissant')
+  check('synced once after reconnecting', JSON.stringify(synced.map((e) => e.amount_cents)), JSON.stringify([1234]))
+
   // Dark mode home
   await page.emulateMedia({ colorScheme: 'dark' })
   await page.goto(BASE + '/')
