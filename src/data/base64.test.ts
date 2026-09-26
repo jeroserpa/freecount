@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { urlBase64ToUint8Array } from './push'
+import { urlBase64ToUint8Array } from './base64'
 
 describe('urlBase64ToUint8Array', () => {
   it('decodes URL-safe base64 without padding', () => {

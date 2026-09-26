@@ -1,17 +1,9 @@
 // Web Push on this device: subscribe with the server's VAPID key and register the subscription.
 // The server side is the `push` Edge Function + database triggers (supabase/migrations/…_push_notifications.sql).
+import { urlBase64ToUint8Array } from './base64'
 import { supabase } from './supabase'
 
 export type PushStatus = 'unsupported' | 'ios-install' | 'denied' | 'enabled' | 'disabled'
-
-/** VAPID keys are URL-safe base64; PushManager wants the raw bytes. */
-export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padded = (base64 + '='.repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/')
-  const raw = atob(padded)
-  const out = new Uint8Array(new ArrayBuffer(raw.length))
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i)
-  return out
-}
 
 const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
 const isStandalone = () =>
