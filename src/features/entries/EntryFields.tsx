@@ -71,6 +71,17 @@ export function EntryFields({
         />
       </div>
 
+      <input
+        id="note"
+        className="input text-center"
+        value={draft.note}
+        onChange={(e) => onChange({ note: e.target.value })}
+        placeholder="Name (optional), e.g. Supermarket"
+        aria-label="Name"
+        maxLength={80}
+        enterKeyHint="done"
+      />
+
       <div className="grid grid-cols-4 gap-2">
         {visibleCategories.map((c) => (
           <button
@@ -145,28 +156,16 @@ export function EntryFields({
 
       {extra}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label" htmlFor="date">{dateLabel}</label>
-          <input
-            id="date"
-            type="date"
-            className="input"
-            value={draft.date}
-            onChange={(e) => onChange({ date: e.target.value })}
-            required
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="note">Note</label>
-          <input
-            id="note"
-            className="input"
-            value={draft.note}
-            onChange={(e) => onChange({ note: e.target.value })}
-            placeholder="Optional"
-          />
-        </div>
+      <div>
+        <label className="label" htmlFor="date">{dateLabel}</label>
+        <input
+          id="date"
+          type="date"
+          className="input"
+          value={draft.date}
+          onChange={(e) => onChange({ date: e.target.value })}
+          required
+        />
       </div>
     </>
   )

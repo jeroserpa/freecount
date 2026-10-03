@@ -46,7 +46,7 @@ Everything in the ledger is an **entry**. An entry has:
 | paid by / received by | One of the two users |
 | category | User-editable list (see §4) |
 | split type | See below |
-| note | Optional free text |
+| note | Optional **name** ("Supermarket", "Netflix"), shown as the entry's title (falls back to the category) |
 | recurring template | Optional link, if generated from a recurring expense |
 
 ### 3.1 Split types
@@ -171,7 +171,8 @@ deterministically (to the payer), so both users always see identical numbers.
 
 One filter row scopes the whole page: **scope** (*My costs* = my share of shared entries + my personal ones;
 *Shared* = household shared spending, full amounts) and **range** (3 / 6 / 12 months). Each user sees shared data
-+ **their own** personal data only (RLS).
++ **their own** personal data only (RLS). The page starts at the first month with data, so months before you
+started using the app don't count as €0 in averages.
 
 - **KPI tiles** for the selected month: total vs the average of the earlier months in range, fixed (recurring)
   share, personal total (My costs) or who paid (Shared), and my ratio for the month.
