@@ -35,8 +35,8 @@ export function StatsPage() {
   const categoryFilter = params.get('category')
   const now = currentMonth()
   const selected = params.get('month') ?? now
-  const months = Array.from({ length: RANGES[range] ?? 6 }, (_, i) => shiftMonth(now, i - (RANGES[range] ?? 6) + 1))
-  const [from] = monthRange(months[0])
+  const rangeMonths = Array.from({ length: RANGES[range] ?? 6 }, (_, i) => shiftMonth(now, i - (RANGES[range] ?? 6) + 1))
+  const [from] = monthRange(rangeMonths[0])
   const [, to] = monthRange(now)
 
   const entries = useEntries(from, to)
@@ -59,6 +59,9 @@ export function StatsPage() {
   const shareFor = (m: string) => ratios.ratioFor(m).shareMe
   const catById = new Map(categories.map((c) => [c.id, c]))
   const all = entries.data ?? []
+  // Stats start at the first month with data: months before you started using the app don't count as €0.
+  const firstMonth = all.reduce((min, e) => (monthOf(e.date) < min ? monthOf(e.date) : min), now)
+  const months = rangeMonths.filter((m) => m >= firstMonth)
   const scoped = categoryFilter
     ? all.filter((e) => (categoryFilter === 'none' ? e.category_id == null : e.category_id === categoryFilter))
     : all

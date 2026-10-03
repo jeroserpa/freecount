@@ -165,7 +165,11 @@ try {
   // Entry in the closed month is locked
   await page.goto(BASE + '/entry/e1')
   await waitForText(page, /is closed/)
-  check('save disabled in closed month', await page.getByRole('button', { name: 'Save' }).isDisabled(), true)
+  // Poll instead of sampling once: the banner and the disabled state can land in different renders.
+  const saveDisabled = await page
+    .waitForFunction(() => [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Save')?.disabled === true, null, { timeout: 5000 })
+    .then(() => true, () => false)
+  check('save disabled in closed month', saveDisabled, true)
   await page.screenshot({ path: SHOTS + '05-locked-entry.png', fullPage: true })
 
   // Settings: fixed 70% → current month: pizza 9 + groceries 6 + custom 30 = 45 → −77.25 + 45 = −32.25
@@ -277,7 +281,7 @@ try {
   await waitForText(page, /Offline/)
   await page.getByLabel('Add expense').click()
   await page.getByLabel('Amount').fill('12.34')
-  await page.getByLabel('Note').fill('Offline croissant')
+  await page.getByLabel('Name').fill('Offline croissant')
   await page.getByRole('button', { name: 'Save' }).click()
   await page.waitForURL(BASE + '/')
   await waitForText(page, /Offline croissant/)
