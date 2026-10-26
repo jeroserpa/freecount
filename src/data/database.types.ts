@@ -196,6 +196,7 @@ export type Database = {
           mode: string
           next_due: string
           note: string
+          notify: boolean
           occurrences: number
           paused: boolean
           payer_id: string
@@ -218,6 +219,7 @@ export type Database = {
           mode?: string
           next_due?: string
           note?: string
+          notify?: boolean
           occurrences?: number
           paused?: boolean
           payer_id: string

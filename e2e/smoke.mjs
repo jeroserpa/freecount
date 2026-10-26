@@ -57,7 +57,7 @@ const db = {
     {
       id: 't-elec', household_id: H, kind: 'expense', amount_cents: 8000, payer_id: HER, category_id: 'c2', note: 'Electricity',
       split_type: 'shared', payer_share_cents: null, frequency: 'monthly', every: 1, mode: 'reminder',
-      start_date: `${CUR}-05`, end_date: null, occurrences: 1, paused: false, created_by: HER, created_at: '', updated_at: '',
+      start_date: `${CUR}-05`, end_date: null, occurrences: 1, paused: false, notify: true, created_by: HER, created_at: '', updated_at: '',
     },
   ],
   pending_recurring: [
@@ -238,6 +238,26 @@ try {
   await page.waitForURL(BASE + '/recurring')
   const rentAfter = db.recurring_templates.find((t) => t.id === rent.id)
   check('edit keeps schedule anchor', JSON.stringify([rentAfter.amount_cents, rentAfter.occurrences, rentAfter.start_date === rentEntry.date]), JSON.stringify([95000, 1, true]))
+  check('new repeat is automatic and notifies', JSON.stringify([rentAfter.mode, rentAfter.notify]), JSON.stringify(['auto', true]))
+
+  // Home lists what's coming up; the editor can make one silent and switch it to "to confirm"
+  await page.goto(BASE + '/')
+  await waitForText(page, /🔁 Repeating/)
+  check('home shows repeating expenses', await page.getByText(/committed/).count() > 0, true)
+  await page.getByRole('link', { name: /All \d+ · edit/ }).click()
+  await page.waitForURL(BASE + '/recurring')
+  await waitForText(page, /Committed per month/)
+  await page.getByRole('link', { name: /Rent/ }).click()
+  await waitForText(page, /Edit recurring/)
+  await page.getByRole('switch', { name: 'Notify us' }).uncheck()
+  await page.getByRole('switch', { name: 'Add automatically' }).uncheck()
+  await waitForText(page, /only shows on the Home screen/)
+  await page.screenshot({ path: SHOTS + '16-recurring-switches.png', fullPage: true })
+  await page.getByRole('switch', { name: 'Add automatically' }).check()
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.waitForURL(BASE + '/recurring')
+  const rentSilent = db.recurring_templates.find((t) => t.id === rent.id)
+  check('automatic + silent saved', JSON.stringify([rentSilent.mode, rentSilent.notify]), JSON.stringify(['auto', false]))
 
   // Ledger
   await page.goto(`${BASE}/ledger?month=${CUR}`)

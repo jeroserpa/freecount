@@ -152,10 +152,11 @@ deterministically (to the payer), so both users always see identical numbers.
 ## 6. Recurring expenses
 
 - Templates: amount, category, split type, payer, note, schedule (monthly on day N; yearly; every N weeks/months).
-- Two modes:
-  - **Auto** — fixed amounts (rent, subscriptions): entry is created automatically on the due date.
-  - **Reminder** — variable amounts (electricity, water): a "to confirm" item appears with the last
-    amount prefilled; the user confirms the real amount.
+- Two independent switches per template:
+  - **Add automatically** — on: the entry is added on its date (rent, subscriptions); off: a "to confirm"
+    reminder asks for the real amount (electricity, water).
+  - **Notify us** — push notification when it is added (both people) or due (reminder). Off: silent.
+- Listed on Home (next ones due + monthly commitment) and in full under Recurring, where each can be edited.
 - Templates can be paused, edited (future occurrences only), or ended (optional end date).
 - Create one from Settings → Recurring, or tick **Repeat** when adding an expense (that expense becomes the
   first occurrence).

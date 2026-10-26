@@ -38,19 +38,30 @@ export function ScheduleFields({
       {every && startDate && (
         <p className="muted text-xs">{describeSchedule({ start_date: startDate, frequency: schedule.frequency, every })}</p>
       )}
-      <Segmented
-        value={schedule.mode}
-        onChange={(mode) => onChange({ mode })}
-        options={[
-          { value: 'auto', label: '⚡ Add automatically' },
-          { value: 'reminder', label: '🔔 Remind me' },
-        ]}
+      <Toggle
+        label="⚡ Add automatically"
+        checked={schedule.auto}
+        onChange={(auto) => onChange({ auto })}
+        hint={
+          schedule.auto
+            ? 'Added on its date with this amount (rent, subscriptions).'
+            : 'Not added by itself: a “to confirm” reminder asks for the real amount (electricity, water).'
+        }
       />
-      <p className="muted text-xs">
-        {schedule.mode === 'auto'
-          ? 'Same amount every time (rent, subscriptions): the entry is added on its date.'
-          : 'Variable amount (electricity, water): you get a reminder to confirm the real amount.'}
-      </p>
+      <Toggle
+        label="🔔 Notify us"
+        checked={schedule.notify}
+        onChange={(notify) => onChange({ notify })}
+        hint={
+          schedule.notify
+            ? schedule.auto
+              ? 'You both get a notification when it’s added.'
+              : 'You get a notification when it’s due.'
+            : schedule.auto
+              ? 'Added silently.'
+              : 'The reminder only shows on the Home screen.'
+        }
+      />
       <div>
         <label className="label" htmlFor="end-date">Ends (optional)</label>
         <input
@@ -63,5 +74,34 @@ export function ScheduleFields({
         />
       </div>
     </div>
+  )
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+  hint,
+}: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+  hint: string
+}) {
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between gap-3">
+        <span className="font-medium">{label}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          className="h-5 w-5 accent-brand-600"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          aria-label={label.replace(/^\S+\s/, '')}
+        />
+      </span>
+      <span className="muted mt-0.5 block text-xs">{hint}</span>
+    </label>
   )
 }
