@@ -9,6 +9,7 @@ import { formatCents } from '../../domain/money'
 import { BalanceCard } from '../balance/BalanceCard'
 import { EntryRow } from '../entries/EntryRow'
 import { PendingCard } from '../recurring/PendingCard'
+import { RecurringCard } from '../recurring/RecurringCard'
 import { IncomePrompt } from './IncomePrompt'
 import { InviteCard } from '../settings/InviteCard'
 
@@ -84,6 +85,7 @@ export function HomePage() {
           </div>
         )}
       </section>
+      <RecurringCard />
     </>
   )
 }

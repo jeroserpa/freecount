@@ -58,7 +58,13 @@ function TemplateForm({
   )
   const [schedule, setSchedule] = useState<ScheduleDraft>(
     template
-      ? { frequency: template.frequency, every: String(template.every), mode: template.mode, endDate: template.end_date ?? '' }
+      ? {
+          frequency: template.frequency,
+          every: String(template.every),
+          auto: template.mode === 'auto',
+          notify: template.notify,
+          endDate: template.end_date ?? '',
+        }
       : defaultSchedule,
   )
   const [paused, setPaused] = useState(template?.paused ?? false)
@@ -90,7 +96,8 @@ function TemplateForm({
         ...result.value,
         frequency: schedule.frequency,
         every,
-        mode: schedule.mode,
+        mode: schedule.auto ? 'auto' : 'reminder',
+        notify: schedule.notify,
         end_date: schedule.endDate || null,
         paused,
         start_date: rescheduled ? draft.date : template!.start_date,

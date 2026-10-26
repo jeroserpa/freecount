@@ -30,7 +30,7 @@ export function RecurringPage() {
           {t.split_type === 'personal' && ' 🔒'}
         </p>
         <p className="muted truncate text-xs">
-          {describeSchedule(t)} · {t.mode === 'auto' ? '⚡ auto' : '🔔 reminder'}
+          {describeSchedule(t)} · {t.mode === 'auto' ? '⚡ automatic' : '✋ to confirm'} · {t.notify ? '🔔' : '🔕'}
           {t.payer_id !== me.id && partner ? ` · ${partner.display_name}` : ''}
         </p>
         <p className="muted truncate text-xs">
@@ -48,7 +48,7 @@ export function RecurringPage() {
     <>
       <PageHeader
         title="Recurring"
-        back="/settings"
+        back="/"
         action={
           <Link to="/recurring/new" className="btn-primary px-4 py-2">
             + New
